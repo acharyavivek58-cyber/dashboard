@@ -14,7 +14,6 @@ class InviteTracker(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.data = self._load()
-        # Cache invites on ready
         self.bot.loop.create_task(self._cache_invites())
 
     def _load(self) -> dict:
@@ -28,7 +27,6 @@ class InviteTracker(commands.Cog):
             json.dump(self.data, f, indent=2)
 
     async def _cache_invites(self):
-        """Cache all invites on bot start."""
         await self.bot.wait_until_ready()
         for guild in self.bot.guilds:
             try:
@@ -53,9 +51,7 @@ class InviteTracker(commands.Cog):
 
     @commands.Cog.listener()
     async def on_member_join(self, member: discord.Member):
-        """Track which invite was used."""
         guild = member.guild
-        gid = str(guild.id)
         guild_data = self._get_guild_data(guild.id)
 
         try:
@@ -63,42 +59,33 @@ class InviteTracker(commands.Cog):
         except discord.Forbidden:
             return
 
-        # Find which invite was used (uses increased)
         old_uses = guild_data.get("invites", {})
         used_invite = None
-
         for inv in invites:
             old_count = old_uses.get(inv.code, 0)
             if inv.uses > old_count:
                 used_invite = inv
                 break
 
-        if used_invite:
-            inviter = used_invite.inviter
-            if inviter:
-                inviter_id = str(inviter.id)
-                guild_data["members"].setdefault(inviter_id, {"total": 0, "joins": 0, "leaves": 0, "fake": 0})
-                guild_data["members"][inviter_id]["total"] += 1
-                guild_data["members"][inviter_id]["joins"] += 1
+        if used_invite and used_invite.inviter:
+            inviter_id = str(used_invite.inviter.id)
+            guild_data["members"].setdefault(inviter_id, {"total": 0, "joins": 0, "leaves": 0, "fake": 0})
+            guild_data["members"][inviter_id]["total"] += 1
+            guild_data["members"][inviter_id]["joins"] += 1
 
-        # Update cached invite counts
         guild_data["invites"] = {inv.code: inv.uses for inv in invites}
         self._save()
 
     @commands.Cog.listener()
     async def on_member_remove(self, member: discord.Member):
-        """Track leaves."""
         guild_data = self._get_guild_data(member.guild.id)
-
-        # Find who invited this member
         for inviter_id, data in guild_data.get("members", {}).items():
             if data.get("joins", 0) > 0:
                 data["leaves"] = data.get("leaves", 0) + 1
                 break
-
         self._save()
 
-    # ── Invite Info ───────────────────────────────────────────────────────
+    # ── Invite Info (Dyno-style) ──────────────────────────────────────────
     @commands.hybrid_command(name="invites", description="Check invite stats for a member")
     @app_commands.describe(member="Member to check (defaults to you)")
     async def invites(self, ctx: commands.Context, member: discord.Member = None):
@@ -112,15 +99,25 @@ class InviteTracker(commands.Cog):
         fake = member_data.get("fake", 0)
         regular = total - fake
 
-        e = info(
-            f"📨 Invites — {member.display_name}",
-            f"**Regular:** {regular}\n"
-            f"**Joins:** {joins}\n"
-            f"**Leaves:** {leaves}\n"
-            f"**Fake:** {fake}\n"
-            f"**Total:** {total}"
-        )
+        # Build Dyno-style embed
+        e = discord.Embed(color=0x5865F2)
+        e.set_author(name="Invite log")
+
+        # Title line
+        e.description = f"» **{member.display_name}** has **{regular}** invites"
+
+        # Set avatar as thumbnail
         e.set_thumbnail(url=member.display_avatar.url)
+
+        # Stats fields
+        e.add_field(name="Joins :", value=f"**{joins}**", inline=True)
+        e.add_field(name="Left :", value=f"**{leaves}**", inline=True)
+        e.add_field(name="Fake :", value=f"**{fake}**", inline=True)
+        e.add_field(name="Rejoins :", value=f"**0**", inline=True)
+
+        # Footer
+        e.set_footer(text=f"Requested by {ctx.author.display_name} · Today at {ctx.created_at.strftime('%H:%M')}", icon_url=ctx.author.display_avatar.url)
+
         await ctx.send(embed=e)
 
     # ── Invite Leaderboard ────────────────────────────────────────────────
@@ -133,26 +130,29 @@ class InviteTracker(commands.Cog):
         if not members:
             return await ctx.send(embed=info("📨 Invites", "No invite data yet."))
 
-        # Sort by regular invites (total - fake)
         sorted_members = sorted(
             members.items(),
             key=lambda x: x[1].get("total", 0) - x[1].get("fake", 0),
             reverse=True
         )[:show]
 
-        lines = []
+        e = discord.Embed(title="📨 Invite Leaderboard", color=0x5865F2)
+        e.set_thumbnail(url=ctx.guild.icon.url if ctx.guild.icon else None)
+
         medals = ["🥇", "🥈", "🥉"]
+        lines = []
         for i, (uid, data) in enumerate(sorted_members):
             member = ctx.guild.get_member(int(uid))
-            name = member.display_name if member else f"Unknown ({uid})"
+            name = member.display_name if member else f"Unknown"
             total = data.get("total", 0)
             fake = data.get("fake", 0)
             regular = total - fake
             leaves = data.get("leaves", 0)
             prefix = medals[i] if i < 3 else f"**{i+1}.**"
-            lines.append(f"{prefix} {name} — `{regular}` regular, `{leaves}` leaves")
+            lines.append(f"{prefix} **{name}** — `{regular}` regular, `{leaves}` leaves")
 
-        e = info(f"📨 Invite Leaderboard — {ctx.guild.name}", "\n".join(lines))
+        e.description = "\n".join(lines)
+        e.set_footer(text=f"Requested by {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
         await ctx.send(embed=e)
 
     # ── Server Invite Stats ───────────────────────────────────────────────
@@ -166,21 +166,20 @@ class InviteTracker(commands.Cog):
         total_leaves = sum(d.get("leaves", 0) for d in members.values())
         active_inviters = len([d for d in members.values() if d.get("total", 0) > 0])
 
-        # Top inviter
         top = max(members.items(), key=lambda x: x[1].get("total", 0)) if members else None
         top_name = "None"
         if top:
-            member = ctx.guild.get_member(int(top[0]))
-            top_name = member.display_name if member else "Unknown"
+            m = ctx.guild.get_member(int(top[0]))
+            top_name = m.display_name if m else "Unknown"
 
-        e = info(
-            f"📨 Invite Stats — {ctx.guild.name}",
-            f"**Total Invites:** {total_invites}\n"
-            f"**Total Joins:** {total_joins}\n"
-            f"**Total Leaves:** {total_leaves}\n"
-            f"**Active Inviters:** {active_inviters}\n"
-            f"**Top Inviter:** {top_name}"
-        )
+        e = discord.Embed(title="📨 Invite Stats", color=0x5865F2)
+        e.set_thumbnail(url=ctx.guild.icon.url if ctx.guild.icon else None)
+        e.add_field(name="Total Invites", value=f"**{total_invites}**", inline=True)
+        e.add_field(name="Total Joins", value=f"**{total_joins}**", inline=True)
+        e.add_field(name="Total Leaves", value=f"**{total_leaves}**", inline=True)
+        e.add_field(name="Active Inviters", value=f"**{active_inviters}**", inline=True)
+        e.add_field(name="Top Inviter", value=f"**{top_name}**", inline=True)
+        e.set_footer(text=f"Requested by {ctx.author.display_name}", icon_url=ctx.author.display_avatar.url)
         await ctx.send(embed=e)
 
 
