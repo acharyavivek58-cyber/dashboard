@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+{% block title %}{{ guild.name }} — Permissions{% endblock %}
+{% block page_title %}Permissions{% endblock %}
+{% block content %}
+<p class="subtitle">Configure which roles can use each command. Toggle "Everyone" to allow all members, or assign specific roles.</p>
+
+<div class="perm-categories">
+    <!-- Moderation -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">🛡️</span>
+            <h3>Moderation</h3>
+            <span class="perm-cat-count" id="count-moderation">0/4</span>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("ban", "Ban a member from the server"), ("kick", "Kick a member from the server"), ("mute", "Timeout (mute) a member"), ("unmute", "Remove timeout from a member")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <select class="perm-role-select" data-cmd="{{ cmd }}" multiple>
+                        {% for role in roles %}
+                        <option value="{{ role.id }}" {{ "selected" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>{{ role.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label class="toggle">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">All</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Warning System -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">⚠️</span>
+            <h3>Warning System</h3>
+            <span class="perm-cat-count" id="count-warning">0/3</span>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("warn", "Warn a member"), ("warnings", "View warnings for a member"), ("purge", "Bulk delete messages")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <select class="perm-role-select" data-cmd="{{ cmd }}" multiple>
+                        {% for role in roles %}
+                        <option value="{{ role.id }}" {{ "selected" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>{{ role.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label class="toggle">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">All</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Role Management -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">🏷️</span>
+            <h3>Role Management</h3>
+            <span class="perm-cat-count" id="count-role">0/3</span>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("role", "Add or remove a role from a member"), ("createrole", "Create a new role"), ("deleterole", "Delete a role")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <select class="perm-role-select" data-cmd="{{ cmd }}" multiple>
+                        {% for role in roles %}
+                        <option value="{{ role.id }}" {{ "selected" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>{{ role.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label class="toggle">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">All</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Giveaways -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">🎉</span>
+            <h3>Giveaways</h3>
+            <span class="perm-cat-count" id="count-giveaway">0/3</span>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("giveaway", "Start a giveaway"), ("giveawayend", "End a giveaway early"), ("giveawayreroll", "Reroll giveaway winner")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <select class="perm-role-select" data-cmd="{{ cmd }}" multiple>
+                        {% for role in roles %}
+                        <option value="{{ role.id }}" {{ "selected" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>{{ role.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label class="toggle">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">All</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Counting -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">🔢</span>
+            <h3>Counting</h3>
+            <span class="perm-cat-count" id="count-counting">0/4</span>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("count", "Check current count"), ("countreset", "Reset the count"), ("countset", "Set count to a number"), ("countlb", "Counting leaderboard")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <select class="perm-role-select" data-cmd="{{ cmd }}" multiple>
+                        {% for role in roles %}
+                        <option value="{{ role.id }}" {{ "selected" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>{{ role.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label class="toggle">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">All</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Utility & Fun (always open) -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">🎮</span>
+            <h3>Utility & Fun</h3>
+            <span class="perm-cat-count" id="count-utility">Everyone</span>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("ping", "Check bot latency"), ("uptime", "Bot uptime"), ("userinfo", "Member info card"), ("serverinfo", "Server info"), ("avatar", "Get user avatar"), ("servericon", "Get server icon"), ("id", "Get user ID"), ("8ball", "Magic 8-ball"), ("coinflip", "Flip a coin"), ("dice", "Roll dice"), ("reverse", "Reverse text"), ("choose", "Random choice from list"), ("poll", "Create a reaction poll"), ("say", "Bot says a message")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <select class="perm-role-select" data-cmd="{{ cmd }}" multiple>
+                        {% for role in roles %}
+                        <option value="{{ role.id }}" {{ "selected" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>{{ role.name }}</option>
+                        {% endfor %}
+                    </select>
+                    <label class="toggle">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", True) }} onchange="toggleEveryone(this)">
+                        <span class="toggle-slider"></span>
+                    </label>
+                    <span class="toggle-label">All</span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<div class="save-bar">
+    <button onclick="saveAllPermissions()" class="btn btn-primary btn-lg">💾 Save All Permissions</button>
+    <span id="perm-save-status" class="save-status">✅ Saved!</span>
+</div>
+
+<style>
+.perm-categories { display: flex; flex-direction: column; gap: 0.75rem; }
+
+.perm-category {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+}
+
+.perm-category-header {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.85rem 1.25rem;
+    cursor: pointer;
+    transition: background 0.15s;
+    user-select: none;
+}
+.perm-category-header:hover { background: var(--bg-hover); }
+
+.perm-cat-icon { font-size: 1.2rem; }
+.perm-category-header h3 { flex: 1; font-size: 0.95rem; font-weight: 600; }
+.perm-cat-count { font-size: 0.78rem; color: var(--text-muted); background: var(--bg-input); padding: 0.15rem 0.6rem; border-radius: 10px; }
+.perm-cat-toggle { color: var(--text-muted); font-size: 0.75rem; transition: transform 0.2s; }
+.perm-category-header.collapsed .perm-cat-toggle { transform: rotate(-90deg); }
+
+.perm-category-body {
+    border-top: 1px solid var(--border);
+    max-height: 2000px;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+.perm-category-body.hidden { max-height: 0; border-top: none; }
+
+.perm-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.65rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    gap: 1rem;
+}
+.perm-row:last-child { border-bottom: none; }
+
+.perm-info {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    min-width: 0;
+}
+.perm-info code { white-space: nowrap; }
+.perm-info span { color: var(--text-dim); font-size: 0.85rem; }
+
+.perm-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+}
+
+.perm-role-select {
+    min-width: 200px;
+    max-width: 250px;
+    padding: 0.4rem 0.6rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.82rem;
+    font-family: inherit;
+}
+.perm-role-select:focus { outline: none; border-color: var(--accent); }
+
+.toggle-label { font-size: 0.8rem; color: var(--text-muted); }
+
+.save-bar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    padding: 1rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    position: sticky;
+    bottom: 1rem;
+}
+
+.btn-lg { padding: 0.7rem 2rem; font-size: 0.95rem; }
+
+@media (max-width: 768px) {
+    .perm-row { flex-direction: column; align-items: flex-start; }
+    .perm-role-select { min-width: 100%; }
+}
+</style>
+
+<script>
+const GUILD_ID = "{{ guild.id }}";
+
+function toggleCategory(header) {
+    const body = header.nextElementSibling;
+    header.classList.toggle("collapsed");
+    body.classList.toggle("hidden");
+}
+
+function toggleEveryone(checkbox) {
+    const cmd = checkbox.dataset.cmd;
+    const select = document.querySelector(`.perm-role-select[data-cmd="${cmd}"]`);
+    if (checkbox.checked) {
+        // Disable role select when "everyone" is on
+        select.style.opacity = "0.4";
+        select.style.pointerEvents = "none";
+    } else {
+        select.style.opacity = "1";
+        select.style.pointerEvents = "auto";
+    }
+}
+
+// Init toggle states
+document.querySelectorAll('[data-type="everyone"]').forEach(cb => {
+    if (cb.checked) toggleEveryone(cb);
+});
+
+async function saveAllPermissions() {
+    const permissions = {};
+    document.querySelectorAll('.perm-row').forEach(row => {
+        const cmd = row.dataset.cmd;
+        const select = row.querySelector('.perm-role-select');
+        const everyone = row.querySelector('[data-type="everyone"]');
+        permissions[cmd] = {
+            roles: Array.from(select.selectedOptions).map(o => o.value),
+            everyone: everyone.checked
+        };
+    });
+
+    const res = await fetch(`/api/permissions/${GUILD_ID}/bulk`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(permissions)
+    });
+
+    const data = await res.json();
+    if (data.success) {
+        const el = document.getElementById("perm-save-status");
+        el.classList.add("show");
+        setTimeout(() => el.classList.remove("show"), 2500);
+    }
+}
+</script>
+{% endblock %}
