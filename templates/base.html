@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Bot Dashboard{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    {% if user %}
+    <div class="app-layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <div class="brand-icon">🤖</div>
+                <span class="brand-text">Bot Panel</span>
+            </div>
+            <nav class="sidebar-nav">
+                <a href="/dashboard" class="nav-item {% if request.endpoint == 'dashboard' %}active{% endif %}">
+                    <span class="nav-icon">🏠</span> Servers
+                </a>
+                {% if guild %}
+                <a href="/dashboard/{{ guild.id }}" class="nav-item {% if request.endpoint == 'guild_settings' %}active{% endif %}">
+                    <span class="nav-icon">⚙️</span> Settings
+                </a>
+                <a href="/dashboard/{{ guild.id }}/commands" class="nav-item {% if request.endpoint == 'guild_commands' %}active{% endif %}">
+                    <span class="nav-icon">⌨️</span> Commands
+                </a>
+                <a href="/dashboard/{{ guild.id }}/moderation" class="nav-item {% if request.endpoint == 'guild_moderation' %}active{% endif %}">
+                    <span class="nav-icon">🛡️</span> Moderation
+                </a>
+                <a href="/dashboard/{{ guild.id }}/counting" class="nav-item {% if request.endpoint == 'guild_counting' %}active{% endif %}">
+                    <span class="nav-icon">🔢</span> Counting
+                </a>
+                {% endif %}
+            </nav>
+            <div class="sidebar-footer">
+                <div class="user-badge">
+                    <img src="https://cdn.discordapp.com/avatars/{{ user.id }}/{{ user.avatar }}.png?size=32" alt="" class="user-avatar">
+                    <span>{{ user.username }}</span>
+                </div>
+                <a href="/logout" class="nav-item logout">🚪 Logout</a>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="topbar">
+                <h1>{% block page_title %}Dashboard{% endblock %}</h1>
+                <div class="topbar-actions">
+                    {% if guild %}
+                    <div class="guild-badge">
+                        {% if guild.icon %}
+                            <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png?size=32" alt="" class="guild-badge-icon">
+                        {% endif %}
+                        <span>{{ guild.name }}</span>
+                    </div>
+                    {% endif %}
+                </div>
+            </header>
+            <div class="content-area">
+                {% block content %}{% endblock %}
+            </div>
+        </main>
+    </div>
+    {% else %}
+        {% block fullpage %}{% endblock %}
+    {% endif %}
+</body>
+</html>

@@ -1,0 +1,10 @@
+.env
+__pycache__/
+*.pyc
+bot_settings.json
+invite_data.json
+counting_data.json
+.freebuff/
+*.log
+*.log.err
+run_dashboard.py

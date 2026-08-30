@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+{% block title %}{{ guild.name }} — Commands{% endblock %}
+{% block page_title %}Commands & Aliases{% endblock %}
+{% block content %}
+<div class="settings-grid">
+    <!-- Custom Aliases -->
+    <div class="settings-card full-width">
+        <div class="settings-card-header">
+            <h3>⚡ Custom Aliases</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Create short aliases for bot commands. Example: <code>m</code> → <code>mute</code></p>
+
+            <div class="alias-form">
+                <div class="form-group">
+                    <label>Alias</label>
+                    <input type="text" id="alias-input" class="input-field" placeholder="e.g. m">
+                </div>
+                <div class="form-group">
+                    <label>Command</label>
+                    <select id="command-select" class="input-field">
+                        <optgroup label="Moderation">
+                            <option value="mute">mute</option>
+                            <option value="unmute">unmute</option>
+                            <option value="ban">ban</option>
+                            <option value="kick">kick</option>
+                            <option value="warn">warn</option>
+                            <option value="warnings">warnings</option>
+                            <option value="purge">purge</option>
+                        </optgroup>
+                        <optgroup label="Utility">
+                            <option value="ping">ping</option>
+                            <option value="uptime">uptime</option>
+                            <option value="userinfo">userinfo</option>
+                            <option value="serverinfo">serverinfo</option>
+                            <option value="avatar">avatar</option>
+                            <option value="servericon">servericon</option>
+                            <option value="id">id</option>
+                        </optgroup>
+                        <optgroup label="Roles">
+                            <option value="role">role</option>
+                            <option value="createrole">createrole</option>
+                            <option value="deleterole">deleterole</option>
+                            <option value="roles">roles</option>
+                        </optgroup>
+                        <optgroup label="Fun">
+                            <option value="8ball">8ball</option>
+                            <option value="coinflip">coinflip</option>
+                            <option value="dice">dice</option>
+                            <option value="reverse">reverse</option>
+                            <option value="choose">choose</option>
+                            <option value="poll">poll</option>
+                        </optgroup>
+                        <optgroup label="Counting">
+                            <option value="count">count</option>
+                            <option value="countreset">countreset</option>
+                            <option value="countset">countset</option>
+                            <option value="countlb">countlb</option>
+                        </optgroup>
+                    </select>
+                </div>
+                <div class="form-group alias-btn-wrap">
+                    <label>&nbsp;</label>
+                    <button onclick="addAlias()" class="btn btn-primary">+ Add Alias</button>
+                </div>
+            </div>
+
+            <div class="alias-list" id="alias-list">
+                {% for alias, command in settings.aliases.items() %}
+                <div class="alias-item">
+                    <div class="alias-pair">
+                        <code class="alias-key">{{ alias }}</code>
+                        <span class="alias-arrow">→</span>
+                        <code class="alias-value">{{ command }}</code>
+                    </div>
+                    <button onclick="deleteAlias('{{ alias }}')" class="btn-icon btn-danger" title="Delete">✕</button>
+                </div>
+                {% endfor %}
+                {% if not settings.aliases %}
+                <div class="empty-inline">
+                    <p>No custom aliases yet. Add one above!</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- All Bot Commands -->
+    <div class="settings-card full-width">
+        <div class="settings-card-header">
+            <h3>📋 All Bot Commands</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Available commands in this bot.</p>
+            <div class="command-table">
+                <div class="command-row header">
+                    <span>Command</span>
+                    <span>Description</span>
+                    <span>Perms</span>
+                </div>
+                <div class="command-row"><span><code>ban</code></span><span>Ban a member</span><span class="perm-badge admin">Co-Owner+</span></div>
+                <div class="command-row"><span><code>kick</code></span><span>Kick a member</span><span class="perm-badge admin">Co-Owner+</span></div>
+                <div class="command-row"><span><code>mute</code></span><span>Timeout a member</span><span class="perm-badge staff">Staff+</span></div>
+                <div class="command-row"><span><code>unmute</code></span><span>Remove timeout</span><span class="perm-badge staff">Staff+</span></div>
+                <div class="command-row"><span><code>warn</code></span><span>Warn a member</span><span class="perm-badge staff">Staff+</span></div>
+                <div class="command-row"><span><code>warnings</code></span><span>View warnings</span><span class="perm-badge public">Everyone</span></div>
+                <div class="command-row"><span><code>purge</code></span><span>Bulk delete messages</span><span class="perm-badge staff">Staff+</span></div>
+                <div class="command-row"><span><code>ping</code></span><span>Check latency</span><span class="perm-badge public">Everyone</span></div>
+                <div class="command-row"><span><code>uptime</code></span><span>Bot uptime</span><span class="perm-badge public">Everyone</span></div>
+                <div class="command-row"><span><code>userinfo</code></span><span>Member info card</span><span class="perm-badge public">Everyone</span></div>
+                <div class="command-row"><span><code>serverinfo</code></span><span>Server info</span><span class="perm-badge public">Everyone</span></div>
+                <div class="command-row"><span><code>avatar</code></span><span>Get user avatar</span><span class="perm-badge public">Everyone</span></div>
+                <div class="command-row"><span><code>role</code></span><span>Add/remove role</span><span class="perm-badge staff">Staff+</span></div>
+                <div class="command-row"><span><code>createrole</code></span><span>Create a role</span><span class="perm-badge admin">Co-Owner+</span></div>
+                <div class="command-row"><span><code>count</code></span><span>Check count</span><span class="perm-badge public">Everyone</span></div>
+                <div class="command-row"><span><code>8ball</code></span><span>Magic 8-ball</span><span class="perm-badge public">Everyone</span></div>
+                <div class="command-row"><span><code>coinflip</code></span><span>Flip a coin</span><span class="perm-badge public">Everyone</span></div>
+                <div class="command-row"><span><code>dice</code></span><span>Roll dice</span><span class="perm-badge public">Everyone</span></div>
+                <div class="command-row"><span><code>poll</code></span><span>Create a poll</span><span class="perm-badge public">Everyone</span></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const GUILD_ID = "{{ guild.id }}";
+
+async function api(method, path, body = null) {
+    const opts = { method, headers: { "Content-Type": "application/json" } };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(path, opts);
+    return res.json();
+}
+
+async function addAlias() {
+    const alias = document.getElementById("alias-input").value.trim();
+    const command = document.getElementById("command-select").value;
+    if (!alias) return;
+    const res = await api("POST", `/api/aliases/${GUILD_ID}`, { alias, command });
+    if (res.success) {
+        document.getElementById("alias-input").value = "";
+        renderAliases(res.aliases);
+    }
+}
+
+async function deleteAlias(alias) {
+    const res = await api("DELETE", `/api/aliases/${GUILD_ID}/${alias}`);
+    if (res.success) renderAliases(res.aliases);
+}
+
+function renderAliases(aliases) {
+    const list = document.getElementById("alias-list");
+    const entries = Object.entries(aliases);
+    if (!entries.length) {
+        list.innerHTML = '<div class="empty-inline"><p>No custom aliases yet. Add one above!</p></div>';
+        return;
+    }
+    list.innerHTML = entries.map(([a, c]) => `
+        <div class="alias-item">
+            <div class="alias-pair">
+                <code class="alias-key">${a}</code>
+                <span class="alias-arrow">→</span>
+                <code class="alias-value">${c}</code>
+            </div>
+            <button onclick="deleteAlias('${a}')" class="btn-icon btn-danger" title="Delete">✕</button>
+        </div>
+    `).join("");
+}
+</script>
+{% endblock %}

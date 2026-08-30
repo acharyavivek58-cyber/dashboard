@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}{{ guild.name }} — Counting{% endblock %}
+{% block page_title %}Counting Game{% endblock %}
+{% block content %}
+<div class="settings-grid">
+    <div class="settings-card full-width">
+        <div class="settings-card-header">
+            <h3>🔢 Counting Channel</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">The counting game is locked to a specific channel. Users take turns typing the next number.</p>
+
+            <div class="counting-rules">
+                <div class="rule">
+                    <span class="rule-icon">✅</span>
+                    <div>
+                        <strong>Correct number</strong>
+                        <p>Reacts with ✅ and advances the count</p>
+                    </div>
+                </div>
+                <div class="rule">
+                    <span class="rule-icon">❌</span>
+                    <div>
+                        <strong>Wrong number</strong>
+                        <p>Reacts with ❌ and resets count to 0</p>
+                    </div>
+                </div>
+                <div class="rule">
+                    <span class="rule-icon">🚫</span>
+                    <div>
+                        <strong>Double count</strong>
+                        <p>Same person can't count twice in a row — resets to 0</p>
+                    </div>
+                </div>
+                <div class="rule">
+                    <span class="rule-icon">🗑️</span>
+                    <div>
+                        <strong>Non-number messages</strong>
+                        <p>Automatically deleted — only numbers allowed</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>⌨️ Commands</h3>
+        </div>
+        <div class="settings-card-body">
+            <div class="command-examples">
+                <div class="example"><code>$count</code> — Check current count</div>
+                <div class="example"><code>$countreset</code> — Reset count (Manage Messages)</div>
+                <div class="example"><code>$countset 50</code> — Set count to a number</div>
+                <div class="example"><code>$countlb</code> — Server leaderboard</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>💡 Tips</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Channel ID: <code>1543631917855805441</code></p>
+            <p class="settings-desc">Make sure the bot has <strong>Manage Messages</strong> permission to delete non-number messages.</p>
+            <p class="settings-desc">Count persists across bot restarts.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

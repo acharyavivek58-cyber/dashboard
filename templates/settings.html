@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% block title %}{{ guild.name }} — Settings{% endblock %}
+{% block page_title %}Server Settings{% endblock %}
+{% block content %}
+<div class="settings-grid">
+    <!-- Prefix -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>🔧 Bot Prefix</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Change the command prefix for this server.</p>
+            <div class="input-row">
+                <input type="text" id="prefix-input" value="{{ settings.prefix }}" maxlength="5" class="input-field input-sm" placeholder="e.g. !">
+                <button onclick="saveSetting('prefix', document.getElementById('prefix-input').value)" class="btn btn-primary">Save</button>
+            </div>
+            <span id="prefix-status" class="save-status"></span>
+        </div>
+    </div>
+
+    <!-- Welcome -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>👋 Welcome Messages</h3>
+            <label class="toggle">
+                <input type="checkbox" id="welcome-enabled" {{ "checked" if settings.welcome_enabled }} onchange="saveSetting('welcome_enabled', this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Greet new members when they join.</p>
+            <div class="form-group">
+                <label>Channel ID</label>
+                <input type="text" id="welcome-channel" value="{{ settings.welcome_channel }}" class="input-field" placeholder="Channel ID">
+            </div>
+            <div class="form-group">
+                <label>Message</label>
+                <input type="text" id="welcome-message" value="{{ settings.welcome_message }}" class="input-field" placeholder="Welcome {user} to {server}!">
+                <span class="form-hint">Use {user} for mention, {server} for server name</span>
+            </div>
+            <button onclick="saveWelcome()" class="btn btn-primary">Save</button>
+            <span id="welcome-status" class="save-status"></span>
+        </div>
+    </div>
+
+    <!-- Auto-Role -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>🏷️ Auto-Role</h3>
+            <label class="toggle">
+                <input type="checkbox" id="autorole-enabled" {{ "checked" if settings.autorole_enabled }} onchange="saveSetting('autorole_enabled', this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Automatically assign a role to new members.</p>
+            <div class="form-group">
+                <label>Role ID</label>
+                <input type="text" id="autorole-id" value="{{ settings.autorole_id }}" class="input-field" placeholder="Role ID">
+            </div>
+            <button onclick="saveAutorole()" class="btn btn-primary">Save</button>
+            <span id="autorole-status" class="save-status"></span>
+        </div>
+    </div>
+
+    <!-- Logging -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>📝 Logging</h3>
+            <label class="toggle">
+                <input type="checkbox" id="logging-enabled" {{ "checked" if settings.logging_enabled }} onchange="saveSetting('logging_enabled', this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Track message edits, deletes, joins, leaves, and voice activity.</p>
+        </div>
+    </div>
+</div>
+
+<script>
+const GUILD_ID = "{{ guild.id }}";
+
+async function api(method, path, body = null) {
+    const opts = { method, headers: { "Content-Type": "application/json" } };
+    if (body) opts.body = JSON.stringify(body);
+    const res = await fetch(path, opts);
+    return res.json();
+}
+
+function showStatus(id, msg) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 2000);
+}
+
+async function saveSetting(key, value) {
+    await api("POST", `/api/settings/${GUILD_ID}`, { [key]: value });
+    showStatus("prefix-status", "✅ Saved!");
+}
+
+async function saveWelcome() {
+    const data = {
+        welcome_enabled: document.getElementById("welcome-enabled").checked,
+        welcome_channel: document.getElementById("welcome-channel").value,
+        welcome_message: document.getElementById("welcome-message").value,
+    };
+    await api("POST", `/api/settings/${GUILD_ID}`, data);
+    showStatus("welcome-status", "✅ Saved!");
+}
+
+async function saveAutorole() {
+    const data = {
+        autorole_enabled: document.getElementById("autorole-enabled").checked,
+        autorole_id: document.getElementById("autorole-id").value,
+    };
+    await api("POST", `/api/settings/${GUILD_ID}`, data);
+    showStatus("autorole-status", "✅ Saved!");
+}
+</script>
+{% endblock %}

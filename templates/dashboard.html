@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Servers — Bot Dashboard{% endblock %}
+{% block page_title %}Your Servers{% endblock %}
+{% block content %}
+<p class="subtitle">Select a server to manage</p>
+<div class="guild-grid">
+    {% if guilds %}
+        {% for guild in guilds %}
+        <a href="/dashboard/{{ guild.id }}" class="guild-card">
+            <div class="guild-card-icon">
+                {% if guild.icon %}
+                    <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png?size=128" alt="{{ guild.name }}">
+                {% else %}
+                    <span>{{ guild.name[0] }}</span>
+                {% endif %}
+            </div>
+            <div class="guild-card-info">
+                <h3>{{ guild.name }}</h3>
+                <span class="guild-card-id">ID: {{ guild.id }}</span>
+            </div>
+            <div class="guild-card-arrow">→</div>
+        </a>
+        {% endfor %}
+    {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">🔍</div>
+            <h3>No servers found</h3>
+            <p>Make sure the bot is in your server and you have Administrator permissions.</p>
+        </div>
+    {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}{{ guild.name }} — Moderation{% endblock %}
+{% block page_title %}Moderation{% endblock %}
+{% block content %}
+<div class="settings-grid">
+    <!-- Permission Tiers -->
+    <div class="settings-card full-width">
+        <div class="settings-card-header">
+            <h3>🛡️ Role Permissions</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Configure which roles can use moderation commands.</p>
+
+            <div class="tier-section">
+                <div class="tier-header">
+                    <span class="perm-badge admin">Co-Owner+</span>
+                    <span class="tier-desc">Can ban, kick, and all Staff commands</span>
+                </div>
+                <div class="tier-roles">
+                    <code>⚔ · founderzz · ⚔</code>
+                    <code>↯ Ownzzz ↯</code>
+                    <code>$</code>
+                    <code>× ·|| Co Ownzzz ×</code>
+                </div>
+            </div>
+
+            <div class="tier-section">
+                <div class="tier-header">
+                    <span class="perm-badge staff">Staff Team+</span>
+                    <span class="tier-desc">Can warn, mute, unmute, purge</span>
+                </div>
+                <div class="tier-roles">
+                    <code>🏠 · Staff Team · 🏠</code>
+                </div>
+            </div>
+
+            <div class="tier-section">
+                <div class="tier-header">
+                    <span class="perm-badge public">Everyone</span>
+                    <span class="tier-desc">Can use utility, fun, and counting commands</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Mute Durations -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>🔇 Mute Durations</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Available mute duration formats:</p>
+            <div class="duration-grid">
+                <div class="duration-item"><code>30s</code> <span>30 seconds</span></div>
+                <div class="duration-item"><code>5m</code> <span>5 minutes</span></div>
+                <div class="duration-item"><code>1h</code> <span>1 hour</span></div>
+                <div class="duration-item"><code>1d</code> <span>1 day</span></div>
+                <div class="duration-item"><code>1w</code> <span>1 week</span></div>
+            </div>
+            <p class="settings-desc" style="margin-top: 1rem;"><strong>Max:</strong> 14 days (Discord limit)</p>
+        </div>
+    </div>
+
+    <!-- Warnings Info -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>⚠️ Warnings</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Warnings are tracked per server and reset on bot restart.</p>
+            <div class="command-examples">
+                <div class="example"><code>$warn @user reason</code> — Warn a member</div>
+                <div class="example"><code>$warnings @user</code> — View warnings</div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
