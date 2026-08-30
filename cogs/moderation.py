@@ -66,15 +66,50 @@ class Moderation(commands.Cog):
 
     async def _resolve_member(self, ctx: commands.Context, value: str) -> discord.Member | None:
         """Resolve a mention, username, or user ID to a Member."""
-        # Try mention first
-        if ctx.message.mentions:
+        # Try mentions from message
+        if ctx.message and ctx.message.mentions:
             return ctx.message.mentions[0]
-        # Try ID
+
+        # Try extracting ID from mention format <@123> or <@!123>
+        import re
+        mention_match = re.match(r'<@!?([0-9]+)>', value)
+        if mention_match:
+            member_id = int(mention_match.group(1))
+            member = ctx.guild.get_member(member_id)
+            if member:
+                return member
+            try:
+                return await ctx.guild.fetch_member(member_id)
+            except (discord.NotFound, discord.HTTPException):
+                return None
+
+        # Try raw ID
         try:
             member_id = int(value)
-            return ctx.guild.get_member(member_id) or await ctx.guild.fetch_member(member_id)
-        except (ValueError, discord.NotFound, discord.HTTPException):
-            return None
+            member = ctx.guild.get_member(member_id)
+            if member:
+                return member
+            try:
+                return await ctx.guild.fetch_member(member_id)
+            except (discord.NotFound, discord.HTTPException):
+                return None
+        except ValueError:
+            pass
+
+        # Try name/nickname search
+        value_lower = value.lower()
+        for member in ctx.guild.members:
+            if (member.name.lower() == value_lower or
+                member.display_name.lower() == value_lower or
+                (member.nick and member.nick.lower() == value_lower)):
+                return member
+
+        # Partial match
+        for member in ctx.guild.members:
+            if value_lower in member.name.lower() or value_lower in member.display_name.lower():
+                return member
+
+        return None
 
     async def _resolve_member_from_args(self, ctx: commands.Context, args: list[str]) -> discord.Member | None:
         """Resolve member from the first non-numeric arg or first arg if all args are checked."""
