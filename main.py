@@ -23,6 +23,11 @@ COGS = [
     "cogs.counting",
     "cogs.giveaway",
     "cogs.invites",
+    "cogs.reaction_roles",
+    "cogs.automod",
+    "cogs.leveling",
+    "cogs.reminders",
+    "cogs.tickets",
 ]
 
 
