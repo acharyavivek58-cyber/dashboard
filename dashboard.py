@@ -13,7 +13,7 @@ from flask import (
 )
 
 app = Flask(__name__)
-app.secret_key = secrets.token_hex(32)
+app.secret_key = os.getenv("FLASK_SECRET", secrets.token_hex(32))
 
 # ── Discord OAuth2 Config ────────────────────────────────────────────────
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
