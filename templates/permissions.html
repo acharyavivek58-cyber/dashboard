@@ -2,7 +2,7 @@
 {% block title %}{{ guild.name }} — Permissions{% endblock %}
 {% block page_title %}Permissions{% endblock %}
 {% block content %}
-<p class="subtitle">Toggle which roles can use each command. Click "All" to allow everyone, or select specific roles.</p>
+<p class="subtitle">Toggle "All" to allow everyone, or pick specific roles for each command.</p>
 
 <div class="perm-categories">
     <!-- Moderation -->
@@ -20,6 +20,21 @@
                     <span>{{ desc }}</span>
                 </div>
                 <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <label class="perm-toggle" title="Allow everyone">
                         <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
                         <span class="perm-toggle-slider"></span>
@@ -46,6 +61,21 @@
                     <span>{{ desc }}</span>
                 </div>
                 <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <label class="perm-toggle" title="Allow everyone">
                         <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
                         <span class="perm-toggle-slider"></span>
@@ -72,6 +102,21 @@
                     <span>{{ desc }}</span>
                 </div>
                 <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <label class="perm-toggle" title="Allow everyone">
                         <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
                         <span class="perm-toggle-slider"></span>
@@ -98,6 +143,21 @@
                     <span>{{ desc }}</span>
                 </div>
                 <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <label class="perm-toggle" title="Allow everyone">
                         <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
                         <span class="perm-toggle-slider"></span>
@@ -124,6 +184,21 @@
                     <span>{{ desc }}</span>
                 </div>
                 <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <label class="perm-toggle" title="Allow everyone">
                         <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", True) }} onchange="toggleEveryone(this)">
                         <span class="perm-toggle-slider"></span>
@@ -150,6 +225,21 @@
                     <span>{{ desc }}</span>
                 </div>
                 <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
                     <label class="perm-toggle" title="Allow everyone">
                         <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", True) }} onchange="toggleEveryone(this)">
                         <span class="perm-toggle-slider"></span>
@@ -174,7 +264,7 @@
     background: linear-gradient(135deg, var(--bg-card), var(--bg-card-alt));
     border: 1px solid var(--border);
     border-radius: var(--radius);
-    overflow: hidden;
+    overflow: visible;
     transition: all 0.2s;
 }
 .perm-category:hover { border-color: var(--border-light); }
@@ -197,11 +287,10 @@
 
 .perm-category-body {
     border-top: 1px solid var(--border);
-    max-height: 2000px;
-    overflow: hidden;
+    overflow: visible;
     transition: max-height 0.3s ease;
 }
-.perm-category-body.hidden { max-height: 0; border-top: none; }
+.perm-category-body.hidden { max-height: 0; border-top: none; overflow: hidden; }
 
 .perm-row {
     display: flex;
@@ -211,6 +300,7 @@
     border-bottom: 1px solid var(--border);
     gap: 1rem;
     transition: background 0.15s;
+    position: relative;
 }
 .perm-row:last-child { border-bottom: none; }
 .perm-row:hover { background: rgba(108,92,231,0.03); }
@@ -220,6 +310,7 @@
     align-items: center;
     gap: 0.75rem;
     min-width: 0;
+    flex: 1;
 }
 .perm-info code { white-space: nowrap; }
 .perm-info span { color: var(--text-secondary); font-size: 0.85rem; }
@@ -227,9 +318,78 @@
 .perm-controls {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 1rem;
     flex-shrink: 0;
 }
+
+/* Role Dropdown */
+.role-dropdown-wrapper {
+    position: relative;
+    z-index: 10;
+}
+
+.role-dropdown-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0.9rem;
+    background: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--text-secondary);
+    font-size: 0.82rem;
+    font-family: inherit;
+    cursor: pointer;
+    transition: all 0.2s;
+    white-space: nowrap;
+}
+.role-dropdown-btn:hover {
+    border-color: var(--accent);
+    color: var(--text-primary);
+}
+.role-dropdown-arrow { font-size: 0.7rem; transition: transform 0.2s; }
+.role-dropdown-btn.open .role-dropdown-arrow { transform: rotate(180deg); }
+
+.role-dropdown-menu {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    min-width: 220px;
+    max-height: 250px;
+    overflow-y: auto;
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-sm);
+    box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+    padding: 0.4rem;
+    z-index: 100;
+}
+.role-dropdown-menu.open { display: block; }
+
+.role-option {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.5rem 0.7rem;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: var(--text-secondary);
+    transition: all 0.15s;
+    user-select: none;
+}
+.role-option:hover { background: var(--bg-hover); color: var(--text-primary); }
+.role-option input { display: none; }
+
+.role-option-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    border: 1px solid rgba(255,255,255,0.1);
+}
+.role-option input:checked ~ .role-option-dot { box-shadow: 0 0 8px currentColor; }
+.role-option input:checked ~ * { color: var(--text-primary); }
 
 /* Permission Toggle */
 .perm-toggle {
@@ -291,6 +451,7 @@
 
 @media (max-width: 768px) {
     .perm-row { flex-direction: column; align-items: flex-start; }
+    .perm-controls { width: 100%; justify-content: space-between; }
 }
 </style>
 
@@ -303,9 +464,73 @@ function toggleCategory(header) {
     body.classList.toggle("hidden");
 }
 
-function toggleEveryone(checkbox) {
-    // Just visual feedback - the label color changes via CSS
+function toggleRoleDropdown(btn) {
+    // Close all other open dropdowns first
+    document.querySelectorAll('.role-dropdown-menu.open').forEach(menu => {
+        if (menu !== btn.nextElementSibling) menu.classList.remove('open');
+    });
+    document.querySelectorAll('.role-dropdown-btn.open').forEach(b => {
+        if (b !== btn) b.classList.remove('open');
+    });
+    
+    btn.classList.toggle('open');
+    btn.nextElementSibling.classList.toggle('open');
 }
+
+// Close dropdowns when clicking outside
+document.addEventListener('click', (e) => {
+    if (!e.target.closest('.role-dropdown-wrapper')) {
+        document.querySelectorAll('.role-dropdown-menu.open').forEach(m => m.classList.remove('open'));
+        document.querySelectorAll('.role-dropdown-btn.open').forEach(b => b.classList.remove('open'));
+    }
+});
+
+function toggleEveryone(checkbox) {
+    const row = checkbox.closest('.perm-row');
+    const dropdown = row.querySelector('.role-dropdown-wrapper');
+    if (checkbox.checked) {
+        dropdown.style.opacity = '0.4';
+        dropdown.style.pointerEvents = 'none';
+    } else {
+        dropdown.style.opacity = '1';
+        dropdown.style.pointerEvents = 'auto';
+    }
+    updateDropdownText(row);
+}
+
+function updateDropdownText(row) {
+    const checked = row.querySelectorAll('.role-checkbox:checked');
+    const text = row.querySelector('.role-dropdown-text');
+    const everyone = row.querySelector('[data-type="everyone"]');
+    
+    if (everyone.checked) {
+        text.textContent = 'Everyone';
+        text.style.color = 'var(--success)';
+    } else if (checked.length === 0) {
+        text.textContent = 'Select roles...';
+        text.style.color = '';
+    } else if (checked.length === 1) {
+        text.textContent = checked[0].closest('.role-option').textContent.trim();
+        text.style.color = 'var(--accent)';
+    } else {
+        text.textContent = `${checked.length} roles selected`;
+        text.style.color = 'var(--accent)';
+    }
+}
+
+// Update dropdown text when role checkboxes change
+document.querySelectorAll('.role-checkbox').forEach(cb => {
+    cb.addEventListener('change', () => {
+        updateDropdownText(cb.closest('.perm-row'));
+    });
+});
+
+// Init all rows
+document.querySelectorAll('.perm-row').forEach(row => {
+    updateDropdownText(row);
+    const everyone = row.querySelector('[data-type="everyone"]');
+    if (everyone && everyone.checked) toggleEveryone(everyone);
+});
 
 async function saveAllPermissions() {
     const btn = document.getElementById("save-btn");
@@ -316,8 +541,9 @@ async function saveAllPermissions() {
     document.querySelectorAll('.perm-row').forEach(row => {
         const cmd = row.dataset.cmd;
         const everyone = row.querySelector('[data-type="everyone"]');
+        const checkedRoles = Array.from(row.querySelectorAll('.role-checkbox:checked')).map(cb => cb.value);
         permissions[cmd] = {
-            roles: [],
+            roles: checkedRoles,
             everyone: everyone.checked
         };
     });
