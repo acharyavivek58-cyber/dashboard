@@ -53,11 +53,9 @@ class Moderation(commands.Cog):
 
     async def _resolve_member(self, ctx: commands.Context, value: str) -> discord.Member | None:
         """Resolve a mention, username, or user ID to a Member."""
-        # Try mentions from message
         if ctx.message and ctx.message.mentions:
             return ctx.message.mentions[0]
 
-        # Try extracting ID from mention format <@123> or <@!123>
         import re
         mention_match = re.match(r'<@!?([0-9]+)>', value)
         if mention_match:
@@ -70,7 +68,6 @@ class Moderation(commands.Cog):
             except (discord.NotFound, discord.HTTPException):
                 return None
 
-        # Try raw ID
         try:
             member_id = int(value)
             member = ctx.guild.get_member(member_id)
@@ -83,7 +80,6 @@ class Moderation(commands.Cog):
         except ValueError:
             pass
 
-        # Try name/nickname search
         value_lower = value.lower()
         for member in ctx.guild.members:
             if (member.name.lower() == value_lower or
@@ -91,27 +87,13 @@ class Moderation(commands.Cog):
                 (member.nick and member.nick.lower() == value_lower)):
                 return member
 
-        # Partial match
         for member in ctx.guild.members:
             if value_lower in member.name.lower() or value_lower in member.display_name.lower():
                 return member
 
         return None
 
-    async def _resolve_member_from_args(self, ctx: commands.Context, args: list[str]) -> discord.Member | None:
-        """Resolve member from the first non-numeric arg or first arg if all args are checked."""
-        if ctx.message.mentions:
-            return ctx.message.mentions[0]
-        if args:
-            return await self._resolve_member(ctx, args[0])
-        return None
-
     def _parse_duration(self, raw: str) -> tuple[datetime.timedelta, str] | None:
-        """
-        Parse a duration string like '5s', '10m', '1h', '2d', '1w'.
-        Returns (timedelta, human_string) or None on failure.
-        Max is 14 days (Discord limit).
-        """
         raw = raw.strip().lower()
         units = {
             's': ('second', 'seconds'),
@@ -155,6 +137,7 @@ class Moderation(commands.Cog):
     # ── Ban ──────────────────────────────────────────────────────────────
     @commands.hybrid_command(name="ban", description="Ban a member from the server")
     @commands.before_invoke(_admin_before_invoke)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     @app_commands.describe(member="Member to ban (mention or ID)", reason="Reason for ban", delete_days="Days of messages to delete (0-7)")
     async def ban(self, ctx: commands.Context, member: str, reason: str = "No reason provided", delete_days: int = 0):
         member = await self._resolve_member(ctx, member)
@@ -183,6 +166,7 @@ class Moderation(commands.Cog):
     # ── Kick ─────────────────────────────────────────────────────────────
     @commands.hybrid_command(name="kick", description="Kick a member from the server")
     @commands.before_invoke(_admin_before_invoke)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     @app_commands.describe(member="Member to kick (mention or ID)", reason="Reason for kick")
     async def kick(self, ctx: commands.Context, member: str, reason: str = "No reason provided"):
         member = await self._resolve_member(ctx, member)
@@ -201,6 +185,7 @@ class Moderation(commands.Cog):
     # ── Mute (timeout) ───────────────────────────────────────────────────
     @commands.hybrid_command(name="mute", description="Timeout (mute) a member")
     @commands.before_invoke(_staff_before_invoke)
+    @commands.cooldown(1, 5, commands.BucketType.user)
     @app_commands.describe(member="Member to mute (mention or ID)", duration="Duration (e.g. 30s, 10m, 1h, 2d, 1w) — max 14d", reason="Reason for mute")
     async def mute(self, ctx: commands.Context, member: str, duration: str = "10m", reason: str = "No reason provided"):
         member = await self._resolve_member(ctx, member)
@@ -222,6 +207,7 @@ class Moderation(commands.Cog):
     # ── Unmute ───────────────────────────────────────────────────────────
     @commands.hybrid_command(name="unmute", description="Remove timeout from a member")
     @commands.before_invoke(_staff_before_invoke)
+    @commands.cooldown(1, 3, commands.BucketType.user)
     @app_commands.describe(member="Member to unmute (mention or ID)")
     async def unmute(self, ctx: commands.Context, member: str):
         member = await self._resolve_member(ctx, member)
@@ -233,6 +219,7 @@ class Moderation(commands.Cog):
     # ── Warn ─────────────────────────────────────────────────────────────
     @commands.hybrid_command(name="warn", description="Warn a member")
     @commands.before_invoke(_staff_before_invoke)
+    @commands.cooldown(1, 3, commands.BucketType.user)
     @app_commands.describe(member="Member to warn (mention or ID)", reason="Reason for warning")
     async def warn(self, ctx: commands.Context, member: str, reason: str = "No reason provided"):
         member = await self._resolve_member(ctx, member)
@@ -254,6 +241,7 @@ class Moderation(commands.Cog):
 
     # ── Warnings ─────────────────────────────────────────────────────────
     @commands.hybrid_command(name="warnings", description="View warnings for a member")
+    @commands.cooldown(1, 3, commands.BucketType.user)
     @app_commands.describe(member="Member to check (mention or ID)")
     async def warnings(self, ctx: commands.Context, member: str):
         member = await self._resolve_member(ctx, member)
@@ -275,6 +263,7 @@ class Moderation(commands.Cog):
     # ── Purge ────────────────────────────────────────────────────────────
     @commands.hybrid_command(name="purge", description="Bulk delete messages in a channel")
     @commands.before_invoke(_staff_before_invoke)
+    @commands.cooldown(1, 10, commands.BucketType.channel)
     @app_commands.describe(amount="Number of messages to delete (1-100)", member="Only delete messages from this member (mention or ID)")
     async def purge(self, ctx: commands.Context, amount: int = 10, member: str = None):
         if member:
@@ -290,8 +279,6 @@ class Moderation(commands.Cog):
         deleted = await ctx.channel.purge(limit=amount, check=check)
         await ctx.send(embed=success("🗑️ Purged", f"Deleted **{len(deleted)}** messages{' from **' + str(member) + '**' if member else ''}."), delete_after=5)
 
-
-import config
 
 async def setup(bot: commands.Bot):
     await bot.add_cog(Moderation(bot))

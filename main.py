@@ -28,6 +28,7 @@ COGS = [
     "cogs.leveling",
     "cogs.reminders",
     "cogs.tickets",
+    "cogs.help",
 ]
 
 
@@ -42,12 +43,13 @@ def get_prefix(bot_instance, message):
 
 
 # Re-create bot with dynamic prefix
+from cogs.help import CustomHelp
 bot = commands.Bot(
     command_prefix=get_prefix,
     intents=intents,
     description="An all-in-one Discord bot with moderation, utility, roles, fun, and logging.",
     activity=discord.Activity(type=discord.ActivityType.watching, name="$help | Dashboard"),
-    help_command=commands.DefaultHelpCommand(no_category="Commands"),
+    help_command=CustomHelp(),
 )
 
 

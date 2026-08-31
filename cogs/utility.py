@@ -14,6 +14,7 @@ class Utility(commands.Cog):
 
     # ── Ping ─────────────────────────────────────────────────────────────
     @commands.hybrid_command(name="ping", description="Check bot latency")
+    @commands.cooldown(1, 3, commands.BucketType.user)
     async def ping(self, ctx: commands.Context):
         latency = round(self.bot.latency * 1000)
         e = success("🏓 Pong!", f"**Latency:** {latency}ms\n**API:** {latency}ms")
@@ -21,6 +22,7 @@ class Utility(commands.Cog):
 
     # ── Uptime ───────────────────────────────────────────────────────────
     @commands.hybrid_command(name="uptime", description="Show bot uptime")
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def uptime(self, ctx: commands.Context):
         delta = datetime.datetime.now(datetime.timezone.utc) - self.start_time
         hours, remainder = divmod(int(delta.total_seconds()), 3600)
@@ -35,6 +37,7 @@ class Utility(commands.Cog):
 
     # ── User Info ────────────────────────────────────────────────────────
     @commands.hybrid_command(name="userinfo", description="Get info about a member")
+    @commands.cooldown(1, 5, commands.BucketType.user)
     @app_commands.describe(member="Member to get info about (defaults to you)")
     async def userinfo(self, ctx: commands.Context, member: discord.Member = None):
         member = member or ctx.author
@@ -42,11 +45,13 @@ class Utility(commands.Cog):
 
     # ── Server Info ──────────────────────────────────────────────────────
     @commands.hybrid_command(name="serverinfo", description="Get info about this server")
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def serverinfo(self, ctx: commands.Context):
         await ctx.send(embed=server_embed(ctx.guild))
 
     # ── Avatar ───────────────────────────────────────────────────────────
     @commands.hybrid_command(name="avatar", description="Get a member's avatar")
+    @commands.cooldown(1, 3, commands.BucketType.user)
     @app_commands.describe(member="Member whose avatar to get")
     async def avatar(self, ctx: commands.Context, member: discord.Member = None):
         member = member or ctx.author
@@ -57,6 +62,7 @@ class Utility(commands.Cog):
 
     # ── Server Icon ──────────────────────────────────────────────────────
     @commands.hybrid_command(name="servericon", description="Get the server's icon")
+    @commands.cooldown(1, 5, commands.BucketType.user)
     async def servericon(self, ctx: commands.Context):
         if not ctx.guild.icon:
             return await ctx.send(embed=error("Error", "This server has no icon."))
@@ -66,6 +72,7 @@ class Utility(commands.Cog):
 
     # ── Lookup ───────────────────────────────────────────────────────────
     @commands.hybrid_command(name="id", description="Get a member's user ID")
+    @commands.cooldown(1, 3, commands.BucketType.user)
     @app_commands.describe(member="Member to look up")
     async def user_id(self, ctx: commands.Context, member: discord.Member = None):
         member = member or ctx.author
