@@ -103,9 +103,11 @@ async def on_command_error(ctx: commands.Context, error: discord.ext.commands.er
     elif isinstance(error, commands.CommandOnCooldown):
         await ctx.send(embed=utils.warning("Cooldown", f"Try again in {error.retry_after:.1f}s."))
     elif isinstance(error, commands.MissingPermissions):
-        await ctx.send(embed=utils.error("Permission Denied", "You don't have permission to use this command."))
+        pass  # silently ignore - no reply
     elif isinstance(error, commands.BotMissingPermissions):
         await ctx.send(embed=utils.error("Bot Missing Permissions", f"I need: **{', '.join(error.missing_permissions)}**"))
+    elif isinstance(error, commands.CheckFailure):
+        pass  # silently ignore - no reply
     else:
         raise error
 

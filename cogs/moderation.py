@@ -44,13 +44,11 @@ class Moderation(commands.Cog):
     async def _staff_before_invoke(self, ctx: commands.Context):
         """Pre-check for staff-level commands (warn, mute, unmute, purge)."""
         if not self._check_permission(ctx.author, "mute"):
-            await ctx.send(embed=error("Permission Denied", "You don't have permission to use this command. Configure it in the dashboard."))
             raise commands.CheckFailure("staff_role")
 
     async def _admin_before_invoke(self, ctx: commands.Context):
         """Pre-check for admin-level commands (ban, kick)."""
         if not self._check_permission(ctx.author, "ban"):
-            await ctx.send(embed=error("Permission Denied", "You don't have permission to use this command. Configure it in the dashboard."))
             raise commands.CheckFailure("admin_role")
 
     async def _resolve_member(self, ctx: commands.Context, value: str) -> discord.Member | None:
