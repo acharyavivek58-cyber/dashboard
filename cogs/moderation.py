@@ -7,26 +7,6 @@ import config
 from utils import success, error, info
 
 
-# Role names for permission tiers (case-insensitive)
-# The server owner always has access to everything.
-
-# Staff Team: can warn, mute, unmute, warnings, purge
-STAFF_ROLE_NAMES = [
-    "staff team",
-]
-
-# Admin+ (Co Ownzzz and above): can ban, kick (everything staff can + more)
-ADMIN_ROLE_NAMES = [
-    "co ownzzz",
-    "ownzzz",
-    "founderzz",
-    "$",
-]
-
-# Combined list for the broader check
-ALL_TRUSTED_ROLES = STAFF_ROLE_NAMES + ADMIN_ROLE_NAMES
-
-
 class Moderation(commands.Cog):
     """Moderation commands — ban, kick, mute, warn, purge."""
 
@@ -34,34 +14,43 @@ class Moderation(commands.Cog):
         self.bot = bot
         self.warnings: dict[int, list[dict]] = {}  # guild_id -> [{user, reason, mod, time}]
 
-    def _check_staff(self, member: discord.Member) -> bool:
-        """Check if member has a Staff Team+ role or is the server owner."""
+    def _check_permission(self, member: discord.Member, command: str) -> bool:
+        """Check if member can use a command based on dashboard permissions."""
+        # Server owner always has access
         if member.id == member.guild.owner_id:
             return True
-        for role in member.roles:
-            if role.name.lower() in ALL_TRUSTED_ROLES:
-                return True
-        return False
-
-    def _check_admin(self, member: discord.Member) -> bool:
-        """Check if member has an Admin+ role (Co Ownzzz+) or is the server owner."""
-        if member.id == member.guild.owner_id:
+        
+        settings = config.get_guild_settings(str(member.guild.id))
+        permissions = settings.get("permissions", {})
+        cmd_perm = permissions.get(command, {})
+        
+        # If 'everyone' is enabled, anyone can use it
+        if cmd_perm.get("everyone", False):
             return True
-        for role in member.roles:
-            if role.name.lower() in ADMIN_ROLE_NAMES:
+        
+        # Check if user has any of the allowed roles
+        allowed_role_ids = cmd_perm.get("roles", [])
+        if not allowed_role_ids:
+            # No roles configured and not everyone = deny
+            return False
+        
+        user_role_ids = [str(r.id) for r in member.roles]
+        for role_id in allowed_role_ids:
+            if role_id in user_role_ids:
                 return True
+        
         return False
 
     async def _staff_before_invoke(self, ctx: commands.Context):
         """Pre-check for staff-level commands (warn, mute, unmute, purge)."""
-        if not self._check_staff(ctx.author):
-            await ctx.send(embed=error("Permission Denied", "You need a Staff Team+ role to use this command."))
+        if not self._check_permission(ctx.author, "mute"):
+            await ctx.send(embed=error("Permission Denied", "You don't have permission to use this command. Configure it in the dashboard."))
             raise commands.CheckFailure("staff_role")
 
     async def _admin_before_invoke(self, ctx: commands.Context):
         """Pre-check for admin-level commands (ban, kick)."""
-        if not self._check_admin(ctx.author):
-            await ctx.send(embed=error("Permission Denied", "You need a Co-Owner+ role to use this command."))
+        if not self._check_permission(ctx.author, "ban"):
+            await ctx.send(embed=error("Permission Denied", "You don't have permission to use this command. Configure it in the dashboard."))
             raise commands.CheckFailure("admin_role")
 
     async def _resolve_member(self, ctx: commands.Context, value: str) -> discord.Member | None:

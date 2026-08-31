@@ -15,12 +15,26 @@ DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", "http://localhost:5000/
 DASHBOARD_API_KEY = os.getenv("DASHBOARD_API_KEY", "changeme")
 
 SETTINGS_FILE = "bot_settings.json"
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", "https://dashboard-qyoy.onrender.com")
 
 # Default embed colors
 COLOR_SUCCESS = 0x57F287
 COLOR_ERROR = 0xED4245
 COLOR_INFO = 0x5865F2
 COLOR_WARNING = 0xFEE75C
+
+
+DEFAULT_SETTINGS = {
+    "prefix": BOT_PREFIX,
+    "aliases": {},
+    "welcome_enabled": False,
+    "welcome_channel": "",
+    "welcome_message": "Welcome {user} to {server}!",
+    "logging_enabled": True,
+    "autorole_enabled": False,
+    "autorole_id": "",
+    "permissions": {}
+}
 
 
 def load_settings() -> dict:
@@ -30,16 +44,45 @@ def load_settings() -> dict:
     return {}
 
 
+def save_settings(data: dict):
+    with open(SETTINGS_FILE, "w") as f:
+        json.dump(data, f, indent=2)
+
+
+def fetch_settings_from_dashboard(guild_id: str) -> dict:
+    """Fetch settings from the dashboard API on Render."""
+    try:
+        import requests
+        resp = requests.get(f"{DASHBOARD_URL}/api/settings/{guild_id}", timeout=5)
+        if resp.status_code == 200:
+            return resp.json()
+    except Exception:
+        pass
+    return {}
+
+
 def get_guild_settings(guild_id: str) -> dict:
+    # Try fetching from dashboard first
+    remote = fetch_settings_from_dashboard(guild_id)
+    if remote and remote.get("permissions"):
+        # Cache locally
+        settings = load_settings()
+        settings[str(guild_id)] = remote
+        save_settings(settings)
+        return remote
+    
+    # Fallback to local file
     settings = load_settings()
-    defaults = {
-        "prefix": BOT_PREFIX,
-        "aliases": {},
-        "welcome_enabled": False,
-        "welcome_channel": "",
-        "welcome_message": "Welcome {user} to {server}!",
-        "logging_enabled": True,
-        "autorole_enabled": False,
-        "autorole_id": "",
-    }
-    return {**defaults, **settings.get(str(guild_id), {})}
+    defaults = json.loads(json.dumps(DEFAULT_SETTINGS))
+    stored = settings.get(str(guild_id), {})
+    
+    # Merge permissions
+    if "permissions" not in stored:
+        stored["permissions"] = defaults["permissions"]
+    else:
+        for cmd, data in defaults["permissions"].items():
+            if cmd not in stored["permissions"]:
+                stored["permissions"][cmd] = data
+    
+    defaults.update(stored)
+    return defaults
