@@ -4,7 +4,6 @@ import asyncio
 import threading
 import config
 import utils
-
 intents = discord.Intents.all()
 
 bot = commands.Bot(
@@ -108,15 +107,19 @@ async def on_command_error(ctx: commands.Context, error: discord.ext.commands.er
 
 def start_dashboard():
     """Run the Flask dashboard in a separate thread."""
+    import os
     from dashboard import app
-    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
 
 async def main():
     # Start dashboard in background thread
     dashboard_thread = threading.Thread(target=start_dashboard, daemon=True)
     dashboard_thread.start()
-    print("  Dashboard: http://localhost:5000")
+    import os
+    port = int(os.environ.get("PORT", 5000))
+    print(f"  Dashboard: http://localhost:{port}")
 
     async with bot:
         for cog in COGS:
