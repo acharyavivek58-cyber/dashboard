@@ -28,7 +28,6 @@ COGS = [
     "cogs.leveling",
     "cogs.reminders",
     "cogs.tickets",
-    "cogs.help",
 ]
 
 
