@@ -17,6 +17,10 @@ DASHBOARD_API_KEY = os.getenv("DASHBOARD_API_KEY", "changeme")
 SETTINGS_FILE = "bot_settings.json"
 DASHBOARD_URL = os.getenv("DASHBOARD_URL", "https://dashboard-qyoy.onrender.com")
 
+# Settings cache (avoid blocking HTTP calls on every message)
+_settings_remote_cache = {}  # {guild_id: {"data": dict, "time": float}}
+_REMOTE_CACHE_TTL = 300  # 5 minutes
+
 # Default embed colors
 COLOR_SUCCESS = 0x57F287
 COLOR_ERROR = 0xED4245
@@ -50,28 +54,27 @@ def save_settings(data: dict):
 
 
 def fetch_settings_from_dashboard(guild_id: str) -> dict:
-    """Fetch settings from the dashboard API on Render."""
+    """Fetch settings from dashboard API — cached, non-blocking."""
+    import time as _time
+    now = _time.time()
+    cached = _settings_remote_cache.get(guild_id)
+    if cached and now - cached["time"] < _REMOTE_CACHE_TTL:
+        return cached["data"]
     try:
         import requests
-        resp = requests.get(f"{DASHBOARD_URL}/api/settings/{guild_id}", timeout=5)
+        resp = requests.get(f"{DASHBOARD_URL}/api/settings/{guild_id}", timeout=2)
         if resp.status_code == 200:
-            return resp.json()
+            data = resp.json()
+            _settings_remote_cache[guild_id] = {"data": data, "time": now}
+            return data
     except Exception:
         pass
-    return {}
+    # Return cached even if stale, or empty
+    return cached["data"] if cached else {}
 
 
 def get_guild_settings(guild_id: str) -> dict:
-    # Try fetching from dashboard first
-    remote = fetch_settings_from_dashboard(guild_id)
-    if remote and remote.get("permissions"):
-        # Cache locally
-        settings = load_settings()
-        settings[str(guild_id)] = remote
-        save_settings(settings)
-        return remote
-    
-    # Fallback to local file
+    # Use local cache only — no blocking HTTP calls
     settings = load_settings()
     defaults = json.loads(json.dumps(DEFAULT_SETTINGS))
     stored = settings.get(str(guild_id), {})

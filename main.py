@@ -1,18 +1,34 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import asyncio
 import threading
+import time
 import config
 import utils
+
+# ── Settings cache (avoid reading JSON/HTTP on every message) ──────
+_settings_cache = {}
+_CACHE_TTL = 30  # seconds
+
+
+def get_prefix(bot_instance, message):
+    """Dynamic prefix: check cached settings, fall back to default."""
+    if not message.guild:
+        return config.BOT_PREFIX
+    gid = str(message.guild.id)
+    now = time.time()
+    cached = _settings_cache.get(gid)
+    if cached and now - cached["time"] < _CACHE_TTL:
+        return cached["prefix"]
+    settings = config.get_guild_settings(gid)
+    prefix = settings.get("prefix", config.BOT_PREFIX)
+    _settings_cache[gid] = {"prefix": prefix, "time": now}
+    return prefix
+
+
+# ── Bot setup ──────────────────────────────────────────────────────
 intents = discord.Intents.all()
-
-bot = commands.Bot(
-    command_prefix=config.BOT_PREFIX,
-    intents=intents,
-    description="An all-in-one Discord bot with moderation, utility, roles, fun, and logging.",
-    activity=discord.Activity(type=discord.ActivityType.watching, name=f"{config.BOT_PREFIX}help"),
-)
-
 
 COGS = [
     "cogs.moderation",
@@ -25,33 +41,27 @@ COGS = [
     "cogs.invites",
     "cogs.reaction_roles",
     "cogs.automod",
-    "cogs.leveling",
+    # "cogs.leveling",  # paused
     "cogs.reminders",
     "cogs.tickets",
+    "cogs.afk",
+    "cogs.music",
+    "cogs.trivia",
+    "cogs.games",
 ]
 
-
-def get_prefix(bot_instance, message):
-    """Dynamic prefix: check dashboard settings, fall back to default."""
-    if message.guild:
-        settings = config.get_guild_settings(str(message.guild.id))
-        guild_prefix = settings.get("prefix", config.BOT_PREFIX)
-    else:
-        guild_prefix = config.BOT_PREFIX
-    return guild_prefix
-
-
-# Re-create bot with dynamic prefix
 from cogs.help import CustomHelp
+
 bot = commands.Bot(
     command_prefix=get_prefix,
     intents=intents,
-    description="An all-in-one Discord bot with moderation, utility, roles, fun, and logging.",
+    description="An all-in-one Discord bot.",
     activity=discord.Activity(type=discord.ActivityType.watching, name="$help | Dashboard"),
     help_command=CustomHelp(),
 )
 
 
+# ── Events ─────────────────────────────────────────────────────────
 @bot.event
 async def on_ready():
     print("─" * 40)
@@ -60,69 +70,98 @@ async def on_ready():
     print(f"  Prefix: {config.BOT_PREFIX} (dynamic)")
     print("─" * 40)
 
-    # Sync slash commands
     try:
+        app_id = str(bot.user.id)
+        old_names = ["ban", "kick", "mute", "unmute", "warn", "warnings", "purge"]
+        registered = await bot.http.get_global_commands(app_id)
+        for cmd in registered:
+            if cmd["name"] in old_names:
+                await bot.http.delete_global_command(app_id, cmd["id"])
+                print(f"  Removed: /{cmd['name']}")
         synced = await bot.tree.sync()
         print(f"  Synced {len(synced)} slash commands.")
     except Exception as e:
-        print(f"  Failed to sync slash commands: {e}")
+        print(f"  Sync error: {e}")
     print("─" * 40)
 
 
+_processed_messages = set()
+
 @bot.event
 async def on_message(message):
-    """Check for alias commands before processing."""
     if message.author.bot or not message.guild:
         await bot.process_commands(message)
         return
 
-    # Check for custom aliases from dashboard
-    settings = config.get_guild_settings(str(message.guild.id))
-    aliases = settings.get("aliases", {})
-    prefix = settings.get("prefix", config.BOT_PREFIX)
+    # Skip if already processed (prevents double replies)
+    if message.id in _processed_messages:
+        return
+    _processed_messages.add(message.id)
+    # Clean up old IDs (keep only last 1000)
+    if len(_processed_messages) > 1000:
+        oldest = list(_processed_messages)[:500]
+        for mid in oldest:
+            _processed_messages.discard(mid)
 
+    # Check for custom aliases from dashboard
     content = message.content
-    if content.startswith(prefix):
-        args = content[len(prefix):].strip().split()
-        if args:
-            cmd_name = args[0].lower()
-            if cmd_name in aliases:
-                # Replace alias with actual command
-                actual_cmd = aliases[cmd_name]
-                message._original_content = content
-                message.content = f"{prefix}{actual_cmd} {' '.join(args[1:])}"
+    if content:
+        prefix = get_prefix(bot, message)
+        if content.startswith(prefix):
+            args = content[len(prefix):].strip().split()
+            if args:
+                cmd_name = args[0].lower()
+                settings = config.get_guild_settings(str(message.guild.id))
+                aliases = settings.get("aliases", {})
+                if cmd_name in aliases:
+                    actual_cmd = aliases[cmd_name]
+                    message._original_content = content
+                    message.content = f"{prefix}{actual_cmd} {' '.join(args[1:])}"
 
     await bot.process_commands(message)
 
 
+@bot.tree.error
+async def on_app_command_error(interaction: discord.Interaction, error: app_commands.AppCommandError):
+    if isinstance(error, app_commands.CommandInvokeError):
+        original = error.original
+        if isinstance(original, commands.MissingRequiredArgument):
+            return  # commands handle their own usage embeds
+    return
+
+
 @bot.event
 async def on_command_error(ctx: commands.Context, error: discord.ext.commands.errors.CommandError):
+    # Check wrapped errors first
+    original = getattr(error, 'original', None)
+    if isinstance(original, commands.MissingRequiredArgument):
+        return
     if isinstance(error, commands.MissingRequiredArgument):
-        await ctx.send(embed=utils.error("Missing Argument", f"```\n{error}\n```"))
-    elif isinstance(error, commands.CommandNotFound):
-        pass  # silently ignore unknown commands
-    elif isinstance(error, commands.CommandOnCooldown):
+        return
+    if isinstance(error, commands.CommandNotFound):
+        return
+    if isinstance(error, commands.CommandOnCooldown):
         await ctx.send(embed=utils.warning("Cooldown", f"Try again in {error.retry_after:.1f}s."))
-    elif isinstance(error, commands.MissingPermissions):
-        pass  # silently ignore - no reply
-    elif isinstance(error, commands.BotMissingPermissions):
+        return
+    if isinstance(error, (commands.MissingPermissions, commands.CheckFailure)):
+        return
+    if isinstance(error, commands.BotMissingPermissions):
         await ctx.send(embed=utils.error("Bot Missing Permissions", f"I need: **{', '.join(error.missing_permissions)}**"))
-    elif isinstance(error, commands.CheckFailure):
-        pass  # silently ignore - no reply
-    else:
-        raise error
+        return
+    # Silently ignore everything else
+    return
 
 
+# ── Dashboard thread ───────────────────────────────────────────────
 def start_dashboard():
-    """Run the Flask dashboard in a separate thread."""
     import os
     from dashboard import app
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
 
 
+# ── Main ───────────────────────────────────────────────────────────
 async def main():
-    # Start dashboard in background thread
     dashboard_thread = threading.Thread(target=start_dashboard, daemon=True)
     dashboard_thread.start()
     import os

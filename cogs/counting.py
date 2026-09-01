@@ -4,11 +4,9 @@ from discord import app_commands
 from utils import success, error, info
 import json
 import os
+import asyncio
 
 DATA_FILE = "counting_data.json"
-
-# Set to a channel ID to restrict counting to one channel.
-# Set to 0 to allow counting in all channels.
 COUNTING_CHANNEL_ID = 1543631917855805441
 
 
@@ -18,16 +16,30 @@ class Counting(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.data = self._load()
+        self._processing = set()
+        print(f"[Counting] Loaded. Channel: {COUNTING_CHANNEL_ID}")
+        print(f"[Counting] Data: {self.data}")
 
     def _load(self) -> dict:
         if os.path.exists(DATA_FILE):
-            with open(DATA_FILE, "r") as f:
-                return json.load(f)
+            try:
+                with open(DATA_FILE, "r") as f:
+                    data = json.load(f)
+                    print(f"[Counting] Loaded data: {data}")
+                    return data
+            except (json.JSONDecodeError, IOError) as e:
+                print(f"[Counting] Load error: {e}")
+                return {}
+        print("[Counting] No data file found, starting fresh")
         return {}
 
     def _save(self):
-        with open(DATA_FILE, "w") as f:
-            json.dump(self.data, f, indent=2)
+        try:
+            with open(DATA_FILE, "w") as f:
+                json.dump(self.data, f, indent=2)
+            print(f"[Counting] Saved: {self.data}")
+        except IOError as e:
+            print(f"[Counting] Save error: {e}")
 
     def _get_channel(self, channel_id: int) -> dict:
         cid = str(channel_id)
@@ -46,70 +58,105 @@ class Counting(commands.Cog):
 
         content = message.content.strip()
 
-        # Delete non-number messages in the counting channel
+        # Allow Co Owner+ to type anything (they manage the channel)
+        co_owner_roles = ["co ownzzz", "co owner", "co-owner", "owner"]
+        is_privileged = any(r.name.lower() in co_owner_roles for r in message.author.roles) or message.author.id == message.guild.owner_id
+
         if not content.isdigit():
+            # Only delete non-numbers if not privileged
+            if is_privileged:
+                return  # Let them type freely
             try:
                 await message.delete()
-            except discord.errors.NotFound:
+            except (discord.errors.NotFound, discord.errors.Forbidden):
                 pass
             return
 
-        number = int(content)
-        channel_id = message.channel.id
-        state = self._get_channel(channel_id)
-
-        expected = state["count"] + 1
-
-        # Check if same person counted last
-        if state["last_user"] == message.author.id:
-            await message.add_reaction("❌")
-            e = error(
-                "❌ Double Count!",
-                f"**{message.author.mention}** counted twice in a row!\n"
-                f"The count has been reset to **0**."
-            )
-            state["count"] = 0
-            state["last_user"] = None
-            self._save()
-            await message.channel.send(embed=e, delete_after=8)
+        # Avoid processing same message twice
+        msg_id = message.id
+        if msg_id in self._processing:
+            print(f"[Counting] Already processing msg {msg_id}, skipping")
             return
+        self._processing.add(msg_id)
 
-        if number == expected:
-            # Correct!
-            state["count"] = number
-            state["last_user"] = message.author.id
-            self._save()
-            await message.add_reaction("✅")
-        else:
-            # Wrong — reset to 0
-            old_count = state["count"]
-            state["count"] = 0
-            state["last_user"] = None
-            self._save()
-            await message.add_reaction("❌")
+        try:
+            number = int(content)
+            channel_id = message.channel.id
+            state = self._get_channel(channel_id)
+            expected = state["count"] + 1
 
-            # Send embed showing the reset
-            e = error(
-                "❌ Count Reset!",
-                f"**{message.author.mention}** said `{number}` but it was `{expected}`.\n"
-                f"The count has been reset to **0**."
-            )
-            await message.channel.send(embed=e, delete_after=8)
+            print(f"[Counting] Got {number}, expected {expected}, current count: {state['count']}, last_user: {state['last_user']}")
 
-    # ── Count Info ────────────────────────────────────────────────────────
-    @commands.hybrid_command(name="count", description="Check the current count in this channel")
+            # Check if same person counted last
+            if state["last_user"] == message.author.id:
+                print(f"[Counting] Double count by {message.author}")
+                try:
+                    await message.add_reaction("\u274c")
+                except discord.errors.Forbidden:
+                    pass
+                e = error(
+                    "\u274c Double Count!",
+                    f"**{message.author.mention}** counted twice in a row!\n"
+                    f"The count has been reset to **0**."
+                )
+                state["count"] = 0
+                state["last_user"] = None
+                self._save()
+                try:
+                    await message.channel.send(embed=e, delete_after=8)
+                except discord.errors.Forbidden:
+                    pass
+                return
+
+            if number == expected:
+                print(f"[Counting] CORRECT! {number} == {expected}")
+                state["count"] = number
+                state["last_user"] = message.author.id
+                self._save()
+                try:
+                    await message.add_reaction("\u2705")
+                except discord.errors.Forbidden:
+                    pass
+            else:
+                print(f"[Counting] WRONG! {number} != {expected}")
+                state["count"] = 0
+                state["last_user"] = None
+                self._save()
+                try:
+                    await message.add_reaction("\u274c")
+                except discord.errors.Forbidden:
+                    pass
+                e = error(
+                    "\u274c Count Reset!",
+                    f"**{message.author.mention}** said `{number}` but it was `{expected}`.\n"
+                    f"The count has been reset to **0**."
+                )
+                try:
+                    await message.channel.send(embed=e, delete_after=8)
+                except discord.errors.Forbidden:
+                    pass
+        finally:
+            await asyncio.sleep(1)
+            self._processing.discard(msg_id)
+
+    @commands.hybrid_command(name="count", description="Check the current count")
     async def count(self, ctx: commands.Context):
+        if COUNTING_CHANNEL_ID and ctx.channel.id != COUNTING_CHANNEL_ID:
+            channel = self.bot.get_channel(COUNTING_CHANNEL_ID)
+            if channel:
+                return await ctx.send(embed=info("Count", f"Counting happens in {channel.mention}!"))
+            return await ctx.send(embed=info("Count", "Counting channel not found."))
+
         state = self._get_channel(ctx.channel.id)
         count = state["count"]
         if count == 0:
-            await ctx.send(embed=info("🔢 Count", "No count started yet. Be the first to type a number!"))
+            await ctx.send(embed=info("Count", "No count started yet. Be the first to type **1**!"))
         else:
             last_user = ctx.guild.get_member(state["last_user"]) if state["last_user"] else None
             name = last_user.display_name if last_user else "Unknown"
-            await ctx.send(embed=info("🔢 Count", f"Current count: **{count}**\nNext number: **{count + 1}**\nLast counter: {name}"))
+            await ctx.send(embed=info("Count", f"Current count: **{count}**\nNext number: **{count + 1}**\nLast counter: {name}"))
 
-    # ── Reset Count ───────────────────────────────────────────────────────
-    @commands.hybrid_command(name="countreset", description="Reset the count in this channel")
+    @commands.hybrid_command(name="countreset", description="Reset the count")
     async def countreset(self, ctx: commands.Context):
         if not ctx.author.guild_permissions.manage_messages:
             return await ctx.send(embed=error("Permission Denied", "You need `Manage Messages` permission."))
@@ -118,11 +165,10 @@ class Counting(commands.Cog):
         state["count"] = 0
         state["last_user"] = None
         self._save()
-        await ctx.send(embed=success("🔄 Count Reset", f"Count was at **{old}**, now reset to **0**."))
+        await ctx.send(embed=success("Count Reset", f"Count was at **{old}**, now reset to **0**."))
 
-    # ── Set Count ─────────────────────────────────────────────────────────
-    @commands.hybrid_command(name="countset", description="Set the count to a specific number")
-    @app_commands.describe(number="Number to set the count to")
+    @commands.hybrid_command(name="countset", description="Set the count to a number")
+    @app_commands.describe(number="Number to set")
     async def countset(self, ctx: commands.Context, number: int):
         if not ctx.author.guild_permissions.manage_messages:
             return await ctx.send(embed=error("Permission Denied", "You need `Manage Messages` permission."))
@@ -132,34 +178,30 @@ class Counting(commands.Cog):
         state["count"] = number
         state["last_user"] = None
         self._save()
-        await ctx.send(embed=success("🔢 Count Set", f"Count is now **{number}**. Next number: **{number + 1}**"))
+        await ctx.send(embed=success("Count Set", f"Count is now **{number}**. Next number: **{number + 1}**"))
 
-    # ── Leaderboard ───────────────────────────────────────────────────────
-    @commands.hybrid_command(name="countlb", description="Counting leaderboard for this server")
+    @commands.hybrid_command(name="countlb", description="Counting leaderboard")
     async def countlb(self, ctx: commands.Context):
-        # Tally all counts per user across all channels
         tallies: dict[int, int] = {}
         for cid, state in self.data.items():
-            # We need to track per-channel top contributors
-            # Since we only store last_user, count the highest number per channel
             uid = state.get("last_user")
             count = state.get("count", 0)
             if uid and count > 0:
                 tallies[uid] = tallies.get(uid, 0) + count
 
         if not tallies:
-            return await ctx.send(embed=info("🔢 Leaderboard", "No counts recorded yet."))
+            return await ctx.send(embed=info("Leaderboard", "No counts recorded yet."))
 
         sorted_users = sorted(tallies.items(), key=lambda x: x[1], reverse=True)[:10]
         lines = []
-        medals = ["🥇", "🥈", "🥉"]
+        medals = ["\U0001f947", "\U0001f948", "\U0001f949"]
         for i, (uid, total) in enumerate(sorted_users):
             member = ctx.guild.get_member(uid)
             name = member.display_name if member else "Unknown"
             prefix = medals[i] if i < 3 else f"**{i+1}.**"
             lines.append(f"{prefix} {name} — `{total}`")
 
-        e = info(f"🔢 Counting Leaderboard — {ctx.guild.name}", "\n".join(lines))
+        e = info(f"Leaderboard — {ctx.guild.name}", "\n".join(lines))
         await ctx.send(embed=e)
 
 

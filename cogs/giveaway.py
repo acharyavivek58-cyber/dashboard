@@ -107,10 +107,15 @@ class Giveaway(commands.Cog):
         }
 
     def _check_staff(self, member: discord.Member) -> bool:
-        cog = self.bot.get_cog("Moderation")
-        if cog:
-            return cog._check_staff(member)
-        return member.id == member.guild.owner_id
+        if member.id == member.guild.owner_id:
+            return True
+        if member.guild_permissions.administrator:
+            return True
+        staff_role_names = ["staff team", "staff", "co owner", "co-ownzzz"]
+        for role in member.roles:
+            if role.name.lower() in staff_role_names:
+                return True
+        return False
 
     # ── End Giveaway ──────────────────────────────────────────────────────
     @commands.hybrid_command(name="giveawayend", description="End a giveaway early")

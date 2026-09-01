@@ -28,16 +28,6 @@ class Fun(commands.Cog):
         result = random.choice(["🪙 Heads!", "🪙 Tails!"])
         await ctx.send(embed=success("Coin Flip", result))
 
-    @commands.hybrid_command(name="dice", description="Roll one or more dice")
-    @app_commands.describe(dice="Number of dice (default 1)", sides="Sides per die (default 6)")
-    async def dice(self, ctx: commands.Context, dice: int = 1, sides: int = 6):
-        dice = max(1, min(25, dice))
-        sides = max(2, min(100, sides))
-        rolls = [random.randint(1, sides) for _ in range(dice)]
-        total = sum(rolls)
-        roll_str = ", ".join(str(r) for r in rolls)
-        await ctx.send(embed=success("🎲 Dice Roll", f"**{dice}d{sides}:** {roll_str}\n**Total:** {total}"))
-
     @commands.hybrid_command(name="reverse", description="Reverse a string")
     @app_commands.describe(text="Text to reverse")
     async def reverse(self, ctx: commands.Context, *, text: str):
