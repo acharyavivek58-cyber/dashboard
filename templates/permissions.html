@@ -13,7 +13,7 @@
             <span class="perm-cat-toggle">▼</span>
         </div>
         <div class="perm-category-body">
-            {% for cmd, desc in [("ban", "Ban a member from the server"), ("kick", "Kick a member from the server"), ("mute", "Timeout (mute) a member"), ("unmute", "Remove timeout from a member")] %}
+            {% for cmd, desc in [("ban", "Ban a member from the server"), ("kick", "Kick a member from the server"), ("mute", "Timeout (mute) a member"), ("unmute", "Remove timeout from a member"), ("warn", "Warn a member"), ("warnings", "View warnings for a member"), ("purge", "Bulk delete messages")] %}
             <div class="perm-row" data-cmd="{{ cmd }}">
                 <div class="perm-info">
                     <code>${{ cmd }}</code>
@@ -46,15 +46,15 @@
         </div>
     </div>
 
-    <!-- Warnings -->
+    <!-- Tickets -->
     <div class="perm-category">
         <div class="perm-category-header" onclick="toggleCategory(this)">
-            <span class="perm-cat-icon">⚠️</span>
-            <h3>Warnings & Purge</h3>
+            <span class="perm-cat-icon">🎫</span>
+            <h3>Tickets</h3>
             <span class="perm-cat-toggle">▼</span>
         </div>
         <div class="perm-category-body">
-            {% for cmd, desc in [("warn", "Warn a member"), ("warnings", "View warnings for a member"), ("purge", "Bulk delete messages")] %}
+            {% for cmd, desc in [("ticketsetup", "Set up the ticket system"), ("ticketrole", "Set the pinged role"), ("tickettype", "Add a ticket type"), ("closetype", "Remove a ticket type"), ("sendpanels", "Send ticket panels"), ("movetickets", "Move tickets to category"), ("close", "Close a ticket"), ("add", "Add user to ticket"), ("remove", "Remove user from ticket")] %}
             <div class="perm-row" data-cmd="{{ cmd }}">
                 <div class="perm-info">
                     <code>${{ cmd }}</code>
@@ -87,15 +87,15 @@
         </div>
     </div>
 
-    <!-- Roles -->
+    <!-- AFK -->
     <div class="perm-category">
         <div class="perm-category-header" onclick="toggleCategory(this)">
-            <span class="perm-cat-icon">🏷️</span>
-            <h3>Role Management</h3>
+            <span class="perm-cat-icon">💤</span>
+            <h3>AFK</h3>
             <span class="perm-cat-toggle">▼</span>
         </div>
         <div class="perm-category-body">
-            {% for cmd, desc in [("role", "Add or remove a role from a member"), ("createrole", "Create a new role"), ("deleterole", "Delete a role")] %}
+            {% for cmd, desc in [("afk", "Set yourself as AFK")] %}
             <div class="perm-row" data-cmd="{{ cmd }}">
                 <div class="perm-info">
                     <code>${{ cmd }}</code>
@@ -118,7 +118,48 @@
                         </div>
                     </div>
                     <label class="perm-toggle" title="Allow everyone">
-                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", True) }} onchange="toggleEveryone(this)">
+                        <span class="perm-toggle-slider"></span>
+                        <span class="perm-toggle-label">All</span>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Invites -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">📨</span>
+            <h3>Invite Tracker</h3>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("invites", "Check your invite count"), ("inviteboard", "Invite leaderboard"), ("invitestats", "Detailed invite stats")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <label class="perm-toggle" title="Allow everyone">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", True) }} onchange="toggleEveryone(this)">
                         <span class="perm-toggle-slider"></span>
                         <span class="perm-toggle-label">All</span>
                     </label>
@@ -169,6 +210,211 @@
         </div>
     </div>
 
+    <!-- Music -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">🎵</span>
+            <h3>Music</h3>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("play", "Play a song or search YouTube"), ("pause", "Pause playback"), ("resume", "Resume playback"), ("skip", "Skip current song"), ("stop", "Stop and clear queue"), ("queue", "Show the music queue"), ("nowplaying", "Show current song"), ("volume", "Set volume 0-100"), ("shuffle", "Shuffle the queue"), ("loop", "Toggle loop mode"), ("removesong", "Remove song from queue"), ("clear", "Clear entire queue"), ("join", "Join your voice channel"), ("leave", "Leave voice channel")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <label class="perm-toggle" title="Allow everyone">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", True) }} onchange="toggleEveryone(this)">
+                        <span class="perm-toggle-slider"></span>
+                        <span class="perm-toggle-label">All</span>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Games -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">🎮</span>
+            <h3>Games</h3>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("roulette", "Spin the wheel of fate"), ("dice", "Roll dice"), ("rps", "Rock Paper Scissors"), ("xo", "Tic Tac Toe"), ("hotxo", "Find the fire in the grid"), ("deathwheel", "Who gets eliminated?"), ("chairs", "Musical chairs"), ("hideandseek", "Hide in a channel"), ("replica", "Type the emoji chain"), ("guesscountry", "Guess the country flag"), ("mafia", "Mini mafia game"), ("wyr", "Would You Rather"), ("fastclick", "Click as fast as you can"), ("fasttype", "Type the word fast"), ("textsplit", "Put letters back in order"), ("textmerge", "Merge words into sentence"), ("flag", "Guess country from flag"), ("textreverse", "Reverse the text"), ("findletter", "Find the hidden letter"), ("correctletter", "Fix scrambled word"), ("sortnumbers", "Sort numbers fast"), ("guesscolor", "Guess the color"), ("emoji", "Guess emoji meaning"), ("reveal", "Hangman word game")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <label class="perm-toggle" title="Allow everyone">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", True) }} onchange="toggleEveryone(this)">
+                        <span class="perm-toggle-slider"></span>
+                        <span class="perm-toggle-label">All</span>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Trivia -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">🧠</span>
+            <h3>Trivia</h3>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("trivia", "Play a trivia round"), ("triviascore", "Check your trivia score"), ("trivialeaderboard", "Top trivia players")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <label class="perm-toggle" title="Allow everyone">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", True) }} onchange="toggleEveryone(this)">
+                        <span class="perm-toggle-slider"></span>
+                        <span class="perm-toggle-label">All</span>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Role Management -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">🏷️</span>
+            <h3>Role Management</h3>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("role", "Add or remove a role"), ("createrole", "Create a new role"), ("deleterole", "Delete a role")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <label class="perm-toggle" title="Allow everyone">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
+                        <span class="perm-toggle-slider"></span>
+                        <span class="perm-toggle-label">All</span>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Utility & Fun -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">🔧</span>
+            <h3>Utility & Fun</h3>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("ping", "Check bot latency"), ("uptime", "Bot uptime"), ("userinfo", "Member info card"), ("serverinfo", "Server info"), ("avatar", "Get user avatar"), ("servericon", "Get server icon"), ("id", "Get user ID"), ("say", "Bot says a message"), ("8ball", "Magic 8-ball"), ("coinflip", "Flip a coin"), ("reverse", "Reverse a string"), ("choose", "Choose from options"), ("poll", "Create a poll"), ("remind", "Set a reminder"), ("reminders", "View your reminders")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <label class="perm-toggle" title="Allow everyone">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", True) }} onchange="toggleEveryone(this)">
+                        <span class="perm-toggle-slider"></span>
+                        <span class="perm-toggle-label">All</span>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
     <!-- Counting -->
     <div class="perm-category">
         <div class="perm-category-header" onclick="toggleCategory(this)">
@@ -210,15 +456,15 @@
         </div>
     </div>
 
-    <!-- Utility & Fun -->
+    <!-- Automod -->
     <div class="perm-category">
         <div class="perm-category-header" onclick="toggleCategory(this)">
-            <span class="perm-cat-icon">🎮</span>
-            <h3>Utility & Fun</h3>
+            <span class="perm-cat-icon">🤖</span>
+            <h3>Automod</h3>
             <span class="perm-cat-toggle">▼</span>
         </div>
         <div class="perm-category-body">
-            {% for cmd, desc in [("ping", "Check bot latency"), ("uptime", "Bot uptime"), ("userinfo", "Member info card"), ("serverinfo", "Server info"), ("avatar", "Get user avatar"), ("servericon", "Get server icon"), ("id", "Get user ID"), ("say", "Bot says a message")] %}
+            {% for cmd, desc in [("automod", "Toggle automod features"), ("automodconfig", "Configure automod settings"), ("clearwarns", "Clear warnings for a user")] %}
             <div class="perm-row" data-cmd="{{ cmd }}">
                 <div class="perm-info">
                     <code>${{ cmd }}</code>
@@ -241,7 +487,48 @@
                         </div>
                     </div>
                     <label class="perm-toggle" title="Allow everyone">
-                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", True) }} onchange="toggleEveryone(this)">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
+                        <span class="perm-toggle-slider"></span>
+                        <span class="perm-toggle-label">All</span>
+                    </label>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Reaction Roles -->
+    <div class="perm-category">
+        <div class="perm-category-header" onclick="toggleCategory(this)">
+            <span class="perm-cat-icon">🎭</span>
+            <h3>Reaction Roles</h3>
+            <span class="perm-cat-toggle">▼</span>
+        </div>
+        <div class="perm-category-body">
+            {% for cmd, desc in [("reactionrole", "Create a reaction role"), ("reactionroleadd", "Add role to message"), ("reactionroledel", "Remove reaction role"), ("reactionroles", "List reaction roles")] %}
+            <div class="perm-row" data-cmd="{{ cmd }}">
+                <div class="perm-info">
+                    <code>${{ cmd }}</code>
+                    <span>{{ desc }}</span>
+                </div>
+                <div class="perm-controls">
+                    <div class="role-dropdown-wrapper">
+                        <button class="role-dropdown-btn" onclick="toggleRoleDropdown(this)">
+                            <span class="role-dropdown-text">Select roles...</span>
+                            <span class="role-dropdown-arrow">▾</span>
+                        </button>
+                        <div class="role-dropdown-menu">
+                            {% for role in roles %}
+                            <label class="role-option">
+                                <input type="checkbox" value="{{ role.id }}" data-cmd="{{ cmd }}" class="role-checkbox" {{ "checked" if role.id in settings.permissions.get(cmd, {}).get("roles", []) }}>
+                                <span class="role-option-dot" style="background: #{{ '%06x' % role.color }}"></span>
+                                {{ role.name }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    <label class="perm-toggle" title="Allow everyone">
+                        <input type="checkbox" data-cmd="{{ cmd }}" data-type="everyone" {{ "checked" if settings.permissions.get(cmd, {}).get("everyone", False) }} onchange="toggleEveryone(this)">
                         <span class="perm-toggle-slider"></span>
                         <span class="perm-toggle-label">All</span>
                     </label>
@@ -322,11 +609,7 @@
     flex-shrink: 0;
 }
 
-/* Role Dropdown */
-.role-dropdown-wrapper {
-    position: relative;
-    z-index: 10;
-}
+.role-dropdown-wrapper { position: relative; z-index: 10; }
 
 .role-dropdown-btn {
     display: flex;
@@ -343,10 +626,7 @@
     transition: all 0.2s;
     white-space: nowrap;
 }
-.role-dropdown-btn:hover {
-    border-color: var(--accent);
-    color: var(--text-primary);
-}
+.role-dropdown-btn:hover { border-color: var(--accent); color: var(--text-primary); }
 .role-dropdown-arrow { font-size: 0.7rem; transition: transform 0.2s; }
 .role-dropdown-btn.open .role-dropdown-arrow { transform: rotate(180deg); }
 
@@ -391,7 +671,6 @@
 .role-option input:checked ~ .role-option-dot { box-shadow: 0 0 8px currentColor; }
 .role-option input:checked ~ * { color: var(--text-primary); }
 
-/* Permission Toggle */
 .perm-toggle {
     display: flex;
     align-items: center;
@@ -465,19 +744,16 @@ function toggleCategory(header) {
 }
 
 function toggleRoleDropdown(btn) {
-    // Close all other open dropdowns first
     document.querySelectorAll('.role-dropdown-menu.open').forEach(menu => {
         if (menu !== btn.nextElementSibling) menu.classList.remove('open');
     });
     document.querySelectorAll('.role-dropdown-btn.open').forEach(b => {
         if (b !== btn) b.classList.remove('open');
     });
-    
     btn.classList.toggle('open');
     btn.nextElementSibling.classList.toggle('open');
 }
 
-// Close dropdowns when clicking outside
 document.addEventListener('click', (e) => {
     if (!e.target.closest('.role-dropdown-wrapper')) {
         document.querySelectorAll('.role-dropdown-menu.open').forEach(m => m.classList.remove('open'));
@@ -502,7 +778,6 @@ function updateDropdownText(row) {
     const checked = row.querySelectorAll('.role-checkbox:checked');
     const text = row.querySelector('.role-dropdown-text');
     const everyone = row.querySelector('[data-type="everyone"]');
-    
     if (everyone.checked) {
         text.textContent = 'Everyone';
         text.style.color = 'var(--success)';
@@ -518,14 +793,12 @@ function updateDropdownText(row) {
     }
 }
 
-// Update dropdown text when role checkboxes change
 document.querySelectorAll('.role-checkbox').forEach(cb => {
     cb.addEventListener('change', () => {
         updateDropdownText(cb.closest('.perm-row'));
     });
 });
 
-// Init all rows
 document.querySelectorAll('.perm-row').forEach(row => {
     updateDropdownText(row);
     const everyone = row.querySelector('[data-type="everyone"]');
@@ -555,7 +828,6 @@ async function saveAllPermissions() {
             body: JSON.stringify(permissions)
         });
         const data = await res.json();
-        
         if (data.success) {
             const el = document.getElementById("perm-save-status");
             el.textContent = "✅ Saved successfully!";

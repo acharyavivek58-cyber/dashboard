@@ -21,6 +21,9 @@ class Moderation(commands.Cog):
         settings = config.get_guild_settings(str(member.guild.id))
         permissions = settings.get("permissions", {})
         cmd_perm = permissions.get(command, {})
+        # If no permissions configured for this command, allow everyone with Manage Server
+        if not cmd_perm or (not cmd_perm.get("roles") and not cmd_perm.get("everyone")):
+            return member.guild_permissions.manage_guild
         if cmd_perm.get("everyone", False):
             return True
         allowed_role_ids = cmd_perm.get("roles", [])
