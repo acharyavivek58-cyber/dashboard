@@ -16,6 +16,10 @@ DISCORD_BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
 SETTINGS_FILE = "bot_settings.json"
 
+# File modification tracking for real-time sync
+_settings_mtime = 0
+_settings_cache_data = {}
+
 # Default embed colors
 COLOR_SUCCESS = 0x57F287
 COLOR_ERROR = 0xED4245
@@ -40,6 +44,9 @@ DEFAULT_SETTINGS = {
         "warn": {"roles": [], "everyone": False},
         "warnings": {"roles": [], "everyone": True},
         "purge": {"roles": [], "everyone": False},
+        "lock": {"roles": [], "everyone": False},
+        "unlock": {"roles": [], "everyone": False},
+        "slowmode": {"roles": [], "everyone": False},
         "ticketsetup": {"roles": [], "everyone": False},
         "ticketrole": {"roles": [], "everyone": False},
         "tickettype": {"roles": [], "everyone": False},
@@ -132,18 +139,31 @@ DEFAULT_SETTINGS = {
 
 # ── Settings persistence ───────────────────────────────────────
 def load_settings() -> dict:
+    global _settings_mtime, _settings_cache_data
+    try:
+        mtime = os.path.getmtime(SETTINGS_FILE)
+    except OSError:
+        mtime = 0
+    if mtime == _settings_mtime and _settings_cache_data:
+        return _settings_cache_data
     if os.path.exists(SETTINGS_FILE):
         try:
             with open(SETTINGS_FILE, "r") as f:
-                return json.load(f)
+                data = json.load(f)
+            _settings_mtime = mtime
+            _settings_cache_data = data
+            return data
         except (json.JSONDecodeError, IOError):
             return {}
     return {}
 
 
 def save_settings(data: dict):
+    global _settings_mtime, _settings_cache_data
     with open(SETTINGS_FILE, "w") as f:
         json.dump(data, f, indent=2)
+    _settings_mtime = os.path.getmtime(SETTINGS_FILE)
+    _settings_cache_data = data
 
 
 def get_guild_settings(guild_id: str) -> dict:
@@ -210,9 +230,10 @@ def has_permission(command_name: str, member) -> bool:
     settings = get_guild_settings(str(member.guild.id))
     permissions = settings.get("permissions", {})
     cmd_perm = permissions.get(command_name, {})
-    # If no permissions configured, allow Manage Server holders
+    # If no permissions configured, allow Manage Server OR mod-level permissions
     if not cmd_perm or (not cmd_perm.get("roles") and not cmd_perm.get("everyone")):
-        return member.guild_permissions.manage_guild
+        perms = member.guild_permissions
+        return perms.manage_guild or perms.manage_messages or perms.mute_members
     if cmd_perm.get("everyone", False):
         return True
     allowed_role_ids = cmd_perm.get("roles", [])

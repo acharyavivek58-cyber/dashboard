@@ -28,17 +28,93 @@ class Games(commands.Cog):
         # Check dashboard permissions
         cmd_name = ctx.command.qualified_name.split()[0]
         if not config.has_permission(cmd_name, ctx.author):
+            await ctx.send(embed=error("Permission Denied", "You don't have permission to use this command."), delete_after=5)
             raise commands.CommandError('No permission')
 
-    # ── Roulette ───────────────────────────────────────────────────
-    @commands.hybrid_command(name="roulette", description="Spin the wheel of fate — will you survive?")
+    # Roulette (Fizbo-style interactive)
+    @commands.hybrid_command(name="roulette", description="Interactive roulette \u2014 join, pick a number, survive!")
     async def roulette(self, ctx: commands.Context):
-        alive = random.randint(1, 6)
-        if alive == 1:
-            embed = discord.Embed(title="🔫 Roulette", description=f"**BANG!** 💀\n{ctx.author.mention} didn't make it...", color=0xED4245)
-        else:
-            embed = discord.Embed(title="🔫 Roulette", description=f"*click*\n{ctx.author.mention} survived! 😮‍💨 ({alive-1}/5 shots left)", color=0x57F287)
-        await ctx.send(embed=embed)
+        players = [ctx.author]
+        max_players = 20
+
+        def build_embed():
+            lines = [
+                "**How to play:**",
+                "1\u20e3 Pick a number that will represent you",
+                "2\u20e3 A random number (the gunshot) will be chosen",
+                "3\u20e3 If your number matches the gunshot, you\u2019re out!",
+                "4\u20e3 Last player standing wins",
+                "",
+                f"**Participating players: ({len(players)}/{max_players})**",
+            ]
+            for i, p in enumerate(players, 1):
+                lines.append(f"{i}\u20e3 {p.mention}")
+            lines.append("")
+            lines.append(f"The game will start in **15 seconds** \u2022 Today at {ctx.created_at.strftime('%H:%M')}")
+            grid = ""
+            for n in range(1, max_players + 1):
+                grid += f"`{n:2d}` "
+                if n % 5 == 0:
+                    grid += "\n"
+            lines.append(grid)
+            return discord.Embed(title="\U0001f52b Roulette", description="\n".join(lines), color=0x2F3136)
+
+        class JoinView(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=20)
+                self.game_started = False
+
+            @discord.ui.button(label="Random join", style=discord.ButtonStyle.success, emoji="\U0001f3ae")
+            async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if self.game_started:
+                    return await interaction.response.send_message("Game already started!", ephemeral=True)
+                if interaction.user in players:
+                    return await interaction.response.send_message("You already joined!", ephemeral=True)
+                if len(players) >= max_players:
+                    return await interaction.response.send_message("Game is full!", ephemeral=True)
+                players.append(interaction.user)
+                await interaction.response.edit_message(embed=build_embed(), view=self)
+
+            @discord.ui.button(label="Leave the game", style=discord.ButtonStyle.danger, emoji="\U0001f6ab")
+            async def leave_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if self.game_started:
+                    return await interaction.response.send_message("Game already started!", ephemeral=True)
+                if interaction.user not in players:
+                    return await interaction.response.send_message("You\u2019re not in the game!", ephemeral=True)
+                if interaction.user == ctx.author:
+                    return await interaction.response.send_message("You can\u2019t leave your own game!", ephemeral=True)
+                players.remove(interaction.user)
+                await interaction.response.edit_message(embed=build_embed(), view=self)
+
+            async def on_timeout(self):
+                self.game_started = True
+                for child in self.children:
+                    child.disabled = True
+
+        view = JoinView()
+        msg = await ctx.send(embed=build_embed(), view=view)
+        await asyncio.sleep(15)
+        view.game_started = True
+        for child in view.children:
+            child.disabled = True
+        if len(players) < 2:
+            return await msg.edit(embed=discord.Embed(title="\U0001f52b Roulette", description="Not enough players! Need at least 2.", color=0xED4245), view=view)
+        random.shuffle(players)
+        number_map = {i + 1: p for i, p in enumerate(players)}
+        gunshot = random.randint(1, len(players))
+        eliminated = number_map[gunshot]
+        grid_lines = []
+        for n in range(1, len(players) + 1):
+            p = number_map[n]
+            marker = "\U0001f4a5" if n == gunshot else "\u2b1c"
+            grid_lines.append(f"{marker} **{n}** \u2014 {p.mention}")
+        result_embed = discord.Embed(
+            title="\U0001f52b Roulette \u2014 Results",
+            description="\n".join(grid_lines) + f"\n\n**Gunshot number: {gunshot}**\n\n{eliminated.mention} has been eliminated! \U0001f480",
+            color=0xED4245
+        )
+        await msg.edit(embed=result_embed, view=None)
+
 
     # ── Dice ───────────────────────────────────────────────────────
     @commands.hybrid_command(name="dice", description="Roll dice")
@@ -51,101 +127,254 @@ class Games(commands.Cog):
         roll_str = ", ".join(str(r) for r in rolls)
         embed = success("🎲 Dice Roll", f"**{dice}d{sides}:** {roll_str}\n**Total:** {total}")
         await ctx.send(embed=embed)
+    # Rock Paper Scissors (Fizbo-style interactive)
+    @commands.hybrid_command(name="rps", description="Interactive RPS \u2014 join, pick, battle!")
+    async def rps(self, ctx: commands.Context):
+        players = [ctx.author]
+        max_players = 2
 
-    # ── Rock Paper Scissors ────────────────────────────────────────
-    @commands.hybrid_command(name="rps", description="Play Rock Paper Scissors")
-    @app_commands.describe(choice="rock, paper, or scissors")
-    async def rps(self, ctx: commands.Context, choice: str):
-        choice = choice.lower().strip()
-        if choice not in ["rock", "paper", "scissors", "r", "p", "s"]:
-            return await ctx.send(embed=error("Error", "Pick `rock`, `paper`, or `scissors`!"))
-        if choice in ["r"]: choice = "rock"
-        elif choice in ["p"]: choice = "paper"
-        elif choice in ["s"]: choice = "scissors"
+        def build_embed():
+            lines = [
+                "**How to play:**",
+                "1\u20e3 Join the game",
+                "2\u20e3 Pick rock, paper, or scissors",
+                "3\u20e3 Beat your opponent to win!",
+                "",
+                f"**Players: ({len(players)}/{max_players})**",
+            ]
+            for i, p in enumerate(players, 1):
+                lines.append(f"{i}\u20e3 {p.mention}")
+            lines.append("")
+            lines.append(f"The game will start in **10 seconds** \u2022 Today at {ctx.created_at.strftime('%H:%M')}")
+            return discord.Embed(title="\U0001faa9\U0001f4f0\u2702\ufe0f Rock Paper Scissors", description="\n".join(lines), color=0x5865F2)
 
-        bot_choice = random.choice(["rock", "paper", "scissors"])
-        emojis = {"rock": "🪨", "paper": "📄", "scissors": "✂️"}
+        class JoinView(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=15)
+                self.game_started = False
 
-        if choice == bot_choice:
-            result, color = "It's a **tie**! 🤝", 0xFEE75C
-        elif (choice == "rock" and bot_choice == "scissors") or \
-             (choice == "paper" and bot_choice == "rock") or \
-             (choice == "scissors" and bot_choice == "paper"):
-            result, color = "You **win**! 🎉", 0x57F287
+            @discord.ui.button(label="Join Game", style=discord.ButtonStyle.success, emoji="\U0001f3ae")
+            async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if self.game_started:
+                    return await interaction.response.send_message("Game already started!", ephemeral=True)
+                if interaction.user in players:
+                    return await interaction.response.send_message("You already joined!", ephemeral=True)
+                if len(players) >= max_players:
+                    return await interaction.response.send_message("Game is full!", ephemeral=True)
+                players.append(interaction.user)
+                await interaction.response.edit_message(embed=build_embed(), view=self)
+
+            @discord.ui.button(label="Leave Game", style=discord.ButtonStyle.danger, emoji="\U0001f6ab")
+            async def leave_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if self.game_started:
+                    return await interaction.response.send_message("Game already started!", ephemeral=True)
+                if interaction.user not in players:
+                    return await interaction.response.send_message("You\u2019re not in the game!", ephemeral=True)
+                if interaction.user == ctx.author:
+                    return await interaction.response.send_message("You can\u2019t leave your own game!", ephemeral=True)
+                players.remove(interaction.user)
+                await interaction.response.edit_message(embed=build_embed(), view=self)
+
+            async def on_timeout(self):
+                self.game_started = True
+                for child in self.children:
+                    child.disabled = True
+
+        view = JoinView()
+        msg = await ctx.send(embed=build_embed(), view=view)
+        await asyncio.sleep(10)
+        view.game_started = True
+        for child in view.children:
+            child.disabled = True
+        if len(players) < 2:
+            return await msg.edit(embed=discord.Embed(title="\U0001faa9\U0001f4f0\u2702\ufe0f RPS", description="Not enough players! Need 2.", color=0xED4245), view=view)
+
+        # Ask both players for their choice
+        emojis = {"rock": "\U0001faa8", "paper": "\U0001f4f0", "scissors": "\u2702\ufe0f"}
+        choices = {}
+
+        class ChoiceView(discord.ui.View):
+            def __init__(self, player):
+                super().__init__(timeout=30)
+                self.player = player
+
+            @discord.ui.button(label="Rock", emoji="\U0001faa8", style=discord.ButtonStyle.secondary)
+            async def rock(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if interaction.user != self.player:
+                    return await interaction.response.send_message("Not your turn!", ephemeral=True)
+                choices[self.player.id] = "rock"
+                await interaction.response.edit_message(content=f"{self.player.mention} chose **Rock** \U0001faa8", view=None)
+
+            @discord.ui.button(label="Paper", emoji="\U0001f4f0", style=discord.ButtonStyle.secondary)
+            async def paper(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if interaction.user != self.player:
+                    return await interaction.response.send_message("Not your turn!", ephemeral=True)
+                choices[self.player.id] = "paper"
+                await interaction.response.edit_message(content=f"{self.player.mention} chose **Paper** \U0001f4f0", view=None)
+
+            @discord.ui.button(label="Scissors", emoji="\u2702\ufe0f", style=discord.ButtonStyle.secondary)
+            async def scissors(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if interaction.user != self.player:
+                    return await interaction.response.send_message("Not your turn!", ephemeral=True)
+                choices[self.player.id] = "scissors"
+                await interaction.response.edit_message(content=f"{self.player.mention} chose **Scissors** \u2702\ufe0f", view=None)
+
+        # Send choice prompts
+        for p in players:
+            await ctx.send(f"{p.mention}, pick your move!", view=ChoiceView(p))
+
+        # Wait for both choices
+        for _ in range(30):
+            if len(choices) == 2:
+                break
+            await asyncio.sleep(1)
+
+        if len(choices) < 2:
+            return await ctx.send(embed=discord.Embed(title="RPS", description="Not everyone picked in time!", color=0xED4245))
+
+        p1, p2 = players[0], players[1]
+        c1, c2 = choices[p1.id], choices[p2.id]
+
+        if c1 == c2:
+            result, color = "It\u2019s a **tie**! \U0001f91d", 0xFEE75C
+            winner = None
+        elif (c1 == "rock" and c2 == "scissors") or (c1 == "paper" and c2 == "rock") or (c1 == "scissors" and c2 == "paper"):
+            result, color = f"**{p1.display_name}** wins! \U0001f389", 0x57F287
+            winner = p1
         else:
-            result, color = "You **lose**! 💀", 0xED4245
+            result, color = f"**{p2.display_name}** wins! \U0001f389", 0x57F287
+            winner = p2
 
-        embed = discord.Embed(title="🪨📄✂️ Rock Paper Scissors", color=color)
-        embed.add_field(name="You", value=f"{emojis[choice]} {choice.title()}", inline=True)
-        embed.add_field(name="Bot", value=f"{emojis[bot_choice]} {bot_choice.title()}", inline=True)
-        embed.add_field(name="Result", value=result, inline=False)
-        await ctx.send(embed=embed)
+        result_embed = discord.Embed(
+            title="\U0001faa9\U0001f4f0\u2702\ufe0f RPS \u2014 Results",
+            description=f"{p1.mention}: **{emojis[c1]} {c1.title()}**\n{p2.mention}: **{emojis[c2]} {c2.title()}**\n\n{result}",
+            color=color
+        )
+        await ctx.send(embed=result_embed)
 
-    # ── XO (Tic Tac Toe) ──────────────────────────────────────────
-    @commands.hybrid_command(name="xo", description="Play Tic Tac Toe against someone")
-    @app_commands.describe(opponent="Who do you want to play against?")
-    async def xo(self, ctx: commands.Context, opponent: discord.Member):
-        if opponent.bot:
-            return await ctx.send(embed=error("Error", "You can't play against a bot!"))
-        if opponent == ctx.author:
-            return await ctx.send(embed=error("Error", "You can't play against yourself!"))
+    # XO (Tic Tac Toe) (Fizbo-style interactive)
+    @commands.hybrid_command(name="xo", description="Interactive Tic Tac Toe \u2014 join, battle!")
+    async def xo(self, ctx: commands.Context):
+        players = [ctx.author]
+        max_players = 2
 
-        board = ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]
-        players = {ctx.author.id: "❌", opponent.id: "⭕"}
-        current = ctx.author.id
+        def build_embed():
+            lines = [
+                "**How to play:**",
+                "1\u20e3 Join the game",
+                "2\u20e3 Take turns placing X or O",
+                "3\u20e3 Get 3 in a row to win!",
+                "",
+                f"**Players: ({len(players)}/{max_players})**",
+            ]
+            for i, p in enumerate(players, 1):
+                marker = "\u274c" if i == 1 else "\u2b55"
+                lines.append(f"{i}\u20e3 {p.mention} ({marker})")
+            lines.append("")
+            lines.append(f"The game will start in **10 seconds** \u2022 Today at {ctx.created_at.strftime('%H:%M')}")
+            return discord.Embed(title="\u274c\u2b55 Tic Tac Toe", description="\n".join(lines), color=0x5865F2)
 
-        def render(b):
-            return f"{b[0]} {b[1]} {b[2]}\n{b[3]} {b[4]} {b[5]}\n{b[6]} {b[7]} {b[8]}"
+        class JoinView(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=15)
+                self.game_started = False
+
+            @discord.ui.button(label="Join Game", style=discord.ButtonStyle.success, emoji="\U0001f3ae")
+            async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if self.game_started:
+                    return await interaction.response.send_message("Game already started!", ephemeral=True)
+                if interaction.user in players:
+                    return await interaction.response.send_message("You already joined!", ephemeral=True)
+                if len(players) >= max_players:
+                    return await interaction.response.send_message("Game is full!", ephemeral=True)
+                players.append(interaction.user)
+                await interaction.response.edit_message(embed=build_embed(), view=self)
+
+            @discord.ui.button(label="Leave Game", style=discord.ButtonStyle.danger, emoji="\U0001f6ab")
+            async def leave_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if self.game_started:
+                    return await interaction.response.send_message("Game already started!", ephemeral=True)
+                if interaction.user not in players:
+                    return await interaction.response.send_message("You\u2019re not in the game!", ephemeral=True)
+                if interaction.user == ctx.author:
+                    return await interaction.response.send_message("You can\u2019t leave your own game!", ephemeral=True)
+                players.remove(interaction.user)
+                await interaction.response.edit_message(embed=build_embed(), view=self)
+
+            async def on_timeout(self):
+                self.game_started = True
+                for child in self.children:
+                    child.disabled = True
+
+        view = JoinView()
+        msg = await ctx.send(embed=build_embed(), view=view)
+        await asyncio.sleep(10)
+        view.game_started = True
+        for child in view.children:
+            child.disabled = True
+        if len(players) < 2:
+            return await msg.edit(embed=discord.Embed(title="XO", description="Not enough players! Need 2.", color=0xED4245), view=view)
+
+        board = ["\u20e3"] * 9
+        player_marks = {players[0].id: "\u274c", players[1].id: "\u2b55"}
+        current_idx = [0]  # mutable container for closure
+
+        def render_board():
+            return f"{board[0]} {board[1]} {board[2]}\n{board[3]} {board[4]} {board[5]}\n{board[6]} {board[7]} {board[8]}"
 
         wins = [(0,1,2),(3,4,5),(6,7,8),(0,3,6),(1,4,7),(2,5,8),(0,4,8),(2,4,6)]
 
-        embed = discord.Embed(
-            title="❌⭕ Tic Tac Toe",
-            description=f"{ctx.author.mention} (❌) vs {opponent.mention} (⭕)\n\n{render(board)}",
-            color=0x5865F2
-        )
-        msg = await ctx.send(embed=embed)
+        class BoardView(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=60)
 
-        for i in range(9):
-            # Add reactions
-            for e in ["1️⃣", "2️⃣", "3️⃣", "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣"]:
-                if e in board:
-                    await msg.add_reaction(e)
+            @discord.ui.button(label="1", style=discord.ButtonStyle.secondary, row=0)
+            async def b1(self, interaction, button): await self._move(interaction, 0)
+            @discord.ui.button(label="2", style=discord.ButtonStyle.secondary, row=0)
+            async def b2(self, interaction, button): await self._move(interaction, 1)
+            @discord.ui.button(label="3", style=discord.ButtonStyle.secondary, row=0)
+            async def b3(self, interaction, button): await self._move(interaction, 2)
+            @discord.ui.button(label="4", style=discord.ButtonStyle.secondary, row=1)
+            async def b4(self, interaction, button): await self._move(interaction, 3)
+            @discord.ui.button(label="5", style=discord.ButtonStyle.secondary, row=1)
+            async def b5(self, interaction, button): await self._move(interaction, 4)
+            @discord.ui.button(label="6", style=discord.ButtonStyle.secondary, row=1)
+            async def b6(self, interaction, button): await self._move(interaction, 5)
+            @discord.ui.button(label="7", style=discord.ButtonStyle.secondary, row=2)
+            async def b7(self, interaction, button): await self._move(interaction, 6)
+            @discord.ui.button(label="8", style=discord.ButtonStyle.secondary, row=2)
+            async def b8(self, interaction, button): await self._move(interaction, 7)
+            @discord.ui.button(label="9", style=discord.ButtonStyle.secondary, row=2)
+            async def b9(self, interaction, button): await self._move(interaction, 8)
 
-            def check(reaction, user):
-                return user.id == current and str(reaction.emoji) in board
+            async def _move(self, interaction, pos):
+                cur = players[current_idx[0]]
+                if interaction.user != cur:
+                    return await interaction.response.send_message("Not your turn!", ephemeral=True)
+                if board[pos] != "\u20e3":
+                    return await interaction.response.send_message("That spot is taken!", ephemeral=True)
+                mark = player_marks[interaction.user.id]
+                board[pos] = mark
+                for a, b, c in wins:
+                    if board[a] == board[b] == board[c] == mark:
+                        embed = discord.Embed(title="\u274c\u2b55 Game Over", description=f"{render_board()}\n\n{cur.mention} **wins!** \U0001f389", color=0x57F287)
+                        for child in self.children:
+                            child.disabled = True
+                        return await interaction.response.edit_message(embed=embed, view=self)
+                if all(b != "\u20e3" for b in board):
+                    embed = discord.Embed(title="\u274c\u2b55 Game Over", description=f"{render_board()}\n\n**It\u2019s a draw!** \U0001f91d", color=0xFEE75C)
+                    for child in self.children:
+                        child.disabled = True
+                    return await interaction.response.edit_message(embed=embed, view=self)
+                current_idx[0] = 1 - current_idx[0]
+                nxt = players[current_idx[0]]
+                embed = discord.Embed(title="\u274c\u2b55 Tic Tac Toe", description=f"**{player_marks[nxt.id]}** {nxt.mention}\u2019s turn\n\n{render_board()}", color=0x5865F2)
+                await interaction.response.edit_message(embed=embed, view=self)
 
-            try:
-                reaction, _ = await self.bot.wait_for("reaction_add", check=check, timeout=60)
-            except asyncio.TimeoutError:
-                return await ctx.send(embed=warning("⏱️ Game Over", "No move in 60s — game cancelled."))
-
-            idx = board.index(str(reaction.emoji))
-            board[idx] = players[current]
-
-            # Check win
-            for a, b, c in wins:
-                if board[a] == board[b] == board[c]:
-                    winner = ctx.author if current == ctx.author.id else opponent
-                    embed = discord.Embed(
-                        title="❌⭕ Game Over",
-                        description=f"{winner.mention} **wins!** 🎉\n\n{render(board)}",
-                        color=0x57F287
-                    )
-                    return await msg.edit(embed=embed)
-
-            # Check draw
-            if all(x in ["❌", "⭕"] for x in board):
-                embed = discord.Embed(title="❌⭕ Game Over", description=f"**It's a draw!** 🤝\n\n{render(board)}", color=0xFEE75C)
-                return await msg.edit(embed=embed)
-
-            current = opponent.id if current == ctx.author.id else ctx.author.id
-            embed = discord.Embed(
-                title="❌⭕ Tic Tac Toe",
-                description=f"**{players[current]}**'s turn\n\n{render(board)}",
-                color=0x5865F2
-            )
-            await msg.edit(embed=embed)
+        board_view = BoardView()
+        cur = players[0]
+        embed = discord.Embed(title="\u274c\u2b55 Tic Tac Toe", description=f"**{player_marks[cur.id]}** {cur.mention}\u2019s turn\n\n{render_board()}", color=0x5865F2)
+        await ctx.send(embed=embed, view=board_view)
 
     # ── Hot XO ─────────────────────────────────────────────────────
     @commands.hybrid_command(name="hotxo", description="Hot or Cold XO — react to the right tile!")
@@ -192,70 +421,241 @@ class Games(commands.Cog):
         board[hot_pos] = "✅"
         await msg.edit(embed=discord.Embed(title="🔥 Hot XO — Game Over!", description=f"The fire was at position **{hot_pos+1}**!\n\n{board[0]} {board[1]} {board[2]}\n{board[3]} {board[4]} {board[5]}\n{board[6]} {board[7]} {board[8]}", color=0xED4245))
 
-    # ── Death Wheel ────────────────────────────────────────────────
-    @commands.hybrid_command(name="deathwheel", description="Spin the death wheel — who survives?")
+    # Death Wheel (Fizbo-style interactive)
+    @commands.hybrid_command(name="deathwheel", description="Interactive death wheel \u2014 join, spin, survive!")
     async def deathwheel(self, ctx: commands.Context):
-        members = [m.mention for m in ctx.channel.members if not m.bot and m.status != discord.Status.offline]
-        if len(members) < 2:
-            return await ctx.send(embed=error("Error", "Need at least 2 people in the channel!"))
+        players = [ctx.author]
+        max_players = 20
 
-        embed = discord.Embed(title="💀 Death Wheel", description=f"**{len(members)}** victims...\n\nSpinning...", color=0xED4245)
-        msg = await ctx.send(embed=embed)
+        def build_embed():
+            lines = [
+                "**How to play:**",
+                "1\u20e3 Join the game",
+                "2\u20e3 The wheel spins and eliminates someone",
+                "3\u20e3 Last player standing wins!",
+                "",
+                f"**Players: ({len(players)}/{max_players})**",
+            ]
+            for i, p in enumerate(players, 1):
+                lines.append(f"{i}\u20e3 {p.mention}")
+            lines.append("")
+            lines.append(f"The game will start in **15 seconds** \u2022 Today at {ctx.created_at.strftime('%H:%M')}")
+            return discord.Embed(title="\U0001f480 Death Wheel", description="\n".join(lines), color=0xED4245)
 
-        for _ in range(5):
-            random.shuffle(members)
-            embed.description = f"**{len(members)}** victims...\n\n🎲 {', '.join(members[:5])}..."
-            await msg.edit(embed=embed)
-            await asyncio.sleep(1)
+        class JoinView(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=20)
+                self.game_started = False
 
-        victim = random.choice(members)
-        embed = discord.Embed(title="💀 Death Wheel", description=f"**{victim}** has been eliminated! 💀", color=0xED4245)
-        await msg.edit(embed=embed)
+            @discord.ui.button(label="Join Wheel", style=discord.ButtonStyle.success, emoji="\U0001f3ae")
+            async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if self.game_started:
+                    return await interaction.response.send_message("Game already started!", ephemeral=True)
+                if interaction.user in players:
+                    return await interaction.response.send_message("You already joined!", ephemeral=True)
+                if len(players) >= max_players:
+                    return await interaction.response.send_message("Game is full!", ephemeral=True)
+                players.append(interaction.user)
+                await interaction.response.edit_message(embed=build_embed(), view=self)
 
-    # ── Chairs ─────────────────────────────────────────────────────
-    @commands.hybrid_command(name="chairs", description="Musical chairs — last one standing loses!")
+            @discord.ui.button(label="Leave Wheel", style=discord.ButtonStyle.danger, emoji="\U0001f6ab")
+            async def leave_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if self.game_started:
+                    return await interaction.response.send_message("Game already started!", ephemeral=True)
+                if interaction.user not in players:
+                    return await interaction.response.send_message("You\u2019re not in the game!", ephemeral=True)
+                if interaction.user == ctx.author:
+                    return await interaction.response.send_message("You can\u2019t leave your own game!", ephemeral=True)
+                players.remove(interaction.user)
+                await interaction.response.edit_message(embed=build_embed(), view=self)
+
+            async def on_timeout(self):
+                self.game_started = True
+                for child in self.children:
+                    child.disabled = True
+
+        view = JoinView()
+        msg = await ctx.send(embed=build_embed(), view=view)
+        await asyncio.sleep(15)
+        view.game_started = True
+        for child in view.children:
+            child.disabled = True
+        if len(players) < 2:
+            return await msg.edit(embed=discord.Embed(title="Death Wheel", description="Not enough players! Need at least 2.", color=0xED4245), view=view)
+
+        # Spin animation
+        remaining = players.copy()
+        while len(remaining) > 1:
+            random.shuffle(remaining)
+            spin_embed = discord.Embed(
+                title="\U0001f480 Death Wheel",
+                description=f"**{len(remaining)}** players remaining...\n\nSpinning...\n\n" + " \u2022 ".join(p.mention for p in remaining),
+                color=0xED4245
+            )
+            await msg.edit(embed=spin_embed)
+            await asyncio.sleep(2)
+            eliminated = remaining.pop(random.randint(0, len(remaining) - 1))
+            result_embed = discord.Embed(
+                title="\U0001f480 Death Wheel",
+                description=f"**{eliminated.mention}** has been eliminated! \U0001f480\n\n**{len(remaining)}** players remaining...",
+                color=0xED4245
+            )
+            await msg.edit(embed=result_embed)
+            await asyncio.sleep(2)
+
+        winner = remaining[0]
+        win_embed = discord.Embed(
+            title="\U0001f480 Death Wheel \u2014 Winner!",
+            description=f"**{winner.mention}** is the last one standing! \U0001f3c6",
+            color=0x57F287
+        )
+    # ── Chairs (Fizbo-style interactive) ────────────────────────────
+    @commands.hybrid_command(name="chairs", description="Interactive musical chairs \u2014 join, grab a chair, survive!")
     async def chairs(self, ctx: commands.Context):
-        members = [m for m in ctx.channel.members if not m.bot and m.status != discord.Status.offline]
-        if len(members) < 3:
-            return await ctx.send(embed=error("Error", "Need at least 3 people!"))
+        players = [ctx.author]
+        max_players = 20
 
-        embed = discord.Embed(title="🪑 Musical Chairs", description=f"**{len(members)}** players — **{len(members)-1}** chairs\n\nWhen I say GO, react with 🪑 fastest!", color=0x5865F2)
-        await ctx.send(embed=embed)
-        await asyncio.sleep(3)
+        def build_embed():
+            lines = [
+                "**How to play:**",
+                "1\u20e3 Join the game",
+                "2\u20e3 When music stops, grab a chair!",
+                "3\u20e3 Last player without a chair is out!",
+                "",
+                f"**Players: ({len(players)}/{max_players})**",
+            ]
+            for i, p in enumerate(players, 1):
+                lines.append(f"{i}\u20e3 {p.mention}")
+            lines.append("")
+            lines.append(f"The game will start in **15 seconds** \u2022 Today at {ctx.created_at.strftime('%H:%M')}")
+            return discord.Embed(title="\U0001fa91 Musical Chairs", description="\n".join(lines), color=0x5865F2)
 
+        class JoinView(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=20)
+                self.game_started = False
+
+            @discord.ui.button(label="Join Game", style=discord.ButtonStyle.success, emoji="\U0001f3ae")
+            async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if self.game_started:
+                    return await interaction.response.send_message("Game already started!", ephemeral=True)
+                if interaction.user in players:
+                    return await interaction.response.send_message("You already joined!", ephemeral=True)
+                if len(players) >= max_players:
+                    return await interaction.response.send_message("Game is full!", ephemeral=True)
+                players.append(interaction.user)
+                await interaction.response.edit_message(embed=build_embed(), view=self)
+
+            @discord.ui.button(label="Leave Game", style=discord.ButtonStyle.danger, emoji="\U0001f6ab")
+            async def leave_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if self.game_started:
+                    return await interaction.response.send_message("Game already started!", ephemeral=True)
+                if interaction.user not in players:
+                    return await interaction.response.send_message("You're not in the game!", ephemeral=True)
+                if interaction.user == ctx.author:
+                    return await interaction.response.send_message("You can't leave your own game!", ephemeral=True)
+                players.remove(interaction.user)
+                await interaction.response.edit_message(embed=build_embed(), view=self)
+
+            async def on_timeout(self):
+                self.game_started = True
+                for child in self.children:
+                    child.disabled = True
+
+        view = JoinView()
+        msg = await ctx.send(embed=build_embed(), view=view)
+        await asyncio.sleep(15)
+        view.game_started = True
+        for child in view.children:
+            child.disabled = True
+        if len(players) < 3:
+            return await msg.edit(embed=discord.Embed(title="Musical Chairs", description="Not enough players! Need at least 3.", color=0xED4245), view=view)
+
+        # Game loop
+        remaining = players.copy()
         eliminated = []
-        while len(members) > 1:
-            chairs_count = len(members) - 1
-            embed = discord.Embed(title="🪑 Musical Chairs", description=f"**{chairs_count}** chairs for **{len(members)}** players\n\n🪑🪑" * min(chairs_count, 5) + f"\n\nReact with 🪑 NOW!", color=0xED4245)
-            msg = await ctx.send(embed=embed)
-            await msg.add_reaction("🪑")
+        round_num = 1
 
-            reactors = set()
-            def check(reaction, user):
-                return str(reaction.emoji) == "🪑" and user in members and user.id not in reactors
-            start = asyncio.get_event_loop().time()
+        while len(remaining) > 1:
+            chairs_count = len(remaining) - 1
 
-            while asyncio.get_event_loop().time() - start < 5:
-                try:
-                    reaction, user = await self.bot.wait_for("reaction_add", check=check, timeout=5 - (asyncio.get_event_loop().time() - start))
-                    reactors.add(user.id)
-                except asyncio.TimeoutError:
-                    break
+            # Show round info
+            round_embed = discord.Embed(
+                title="\U0001fa91 Musical Chairs \u2014 Round " + str(round_num),
+                description=f"**{chairs_count}** chairs for **{len(remaining)}** players\n\n" + " ".join(["\U0001fa91"] * min(chairs_count, 10)) + "\n\n**Grab a chair when the music stops!**",
+                color=0x5865F2
+            )
+            await msg.edit(embed=round_embed)
 
-            safe = list(reactors)[:chairs_count]
-            losers = [m for m in members if m.id not in safe]
+            # "Music playing" phase
+            await asyncio.sleep(random.randint(3, 8))
+
+            # Grab chair phase with button
+            class ChairView(discord.ui.View):
+                def __init__(self):
+                    super().__init__(timeout=10)
+                    self.grabbed = []
+
+                @discord.ui.button(label="Grab Chair!", style=discord.ButtonStyle.success, emoji="\U0001fa91")
+                async def grab_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                    if interaction.user not in remaining:
+                        return await interaction.response.send_message("You're not in the game!", ephemeral=True)
+                    if interaction.user.id in self.grabbed:
+                        return await interaction.response.send_message("You already grabbed a chair!", ephemeral=True)
+                    if len(self.grabbed) >= chairs_count:
+                        return await interaction.response.send_message("No more chairs!", ephemeral=True)
+                    self.grabbed.append(interaction.user.id)
+                    await interaction.response.send_message(f"\u2705 **{interaction.user.display_name}** grabbed a chair!", ephemeral=True)
+
+                async def on_timeout(self):
+                    for child in self.children:
+                        child.disabled = True
+
+            chair_view = ChairView()
+            stop_embed = discord.Embed(
+                title="\U0001fa91 Musical Chairs \u2014 GRAB!",
+                description=f"**{chairs_count}** chairs available!\n\n**CLICK THE BUTTON TO GRAB A CHAIR!**\n\nTime remaining: **10 seconds**",
+                color=0xED4245
+            )
+            await msg.edit(embed=stop_embed, view=chair_view)
+            await asyncio.sleep(10)
+
+            # Find losers
+            safe = set(chair_view.grabbed[:chairs_count])
+            losers = [p for p in remaining if p.id not in safe]
 
             if losers:
                 loser = random.choice(losers)
                 eliminated.append(loser)
-                members.remove(loser)
-                embed = discord.Embed(title="🪑 Musical Chairs", description=f"**{loser.mention}** is OUT! 💀\n\nEliminated: {', '.join(e.mention for e in eliminated)}\n\n**{len(members)}** players left!", color=0xED4245)
-                await ctx.send(embed=embed)
+                remaining.remove(loser)
+
+                result_embed = discord.Embed(
+                    title="\U0001fa91 Musical Chairs",
+                    description=f"**{loser.mention}** didn't grab a chair in time! \U0001f480\n\nEliminated: {', '.join(e.mention for e in eliminated)}\n\n**{len(remaining)}** players remaining!",
+                    color=0xED4245
+                )
+                await msg.edit(embed=result_embed, view=None)
+                await asyncio.sleep(2)
+            else:
+                # Everyone got a chair
+                safe_embed = discord.Embed(
+                    title="\U0001fa91 Musical Chairs",
+                    description=f"Everyone grabbed a chair! \u2705\n\n**{len(remaining)}** players remaining!",
+                    color=0x57F287
+                )
+                await msg.edit(embed=safe_embed, view=None)
                 await asyncio.sleep(2)
 
-        winner = members[0]
-        embed = discord.Embed(title="🪑 Musical Chairs — Winner!", description=f"**{winner.mention}** is the last one standing! 🏆🎉", color=0x57F287)
-        await ctx.send(embed=embed)
+            round_num += 1
+
+        # Winner
+        winner = remaining[0]
+        win_embed = discord.Embed(
+            title="\U0001fa91 Musical Chairs \u2014 Winner!",
+            description=f"**{winner.mention}** is the last one standing! \U0001f3c6\n\nEliminated: {', '.join(e.mention for e in eliminated)}",
+            color=0x57F287
+        )
+        await ctx.send(embed=win_embed)
 
     # ── Hide and Seek ──────────────────────────────────────────────
     @commands.hybrid_command(name="hideandseek", description="Hide in a channel — others have to find you!")
@@ -367,41 +767,191 @@ class Games(commands.Cog):
         else:
             await ctx.send(embed=error("❌ Wrong!", f"The answer was {flag} **{country}**. You chose: {chosen}"))
 
-    # ── Mafia ──────────────────────────────────────────────────────
-    @commands.hybrid_command(name="mafia", description="Start a mini mafia game (3-10 players)")
+    # Mafia (Fizbo-style interactive)
+    @commands.hybrid_command(name="mafia", description="Interactive mafia \u2014 join, vote, survive!")
     async def mafia(self, ctx: commands.Context):
-        members = [m for m in ctx.channel.members if not m.bot and m.status != discord.Status.offline]
-        if len(members) < 3:
-            return await ctx.send(embed=error("Error", "Need at least 3 players!"))
-        if len(members) > 10:
-            members = members[:10]
+        players = [ctx.author]
+        max_players = 10
+        min_players = 4
+
+        def build_embed():
+            lines = [
+                "**How to play:**",
+                "1\u20e3 Join the game",
+                "2\u20e3 Mafia are assigned secretly via DM",
+                "3\u20e3 Vote to eliminate suspects",
+                "4\u20e3 Mafia tries to eliminate civilians",
+                "5\u20e3 Last team standing wins!",
+                "",
+                f"**Players: ({len(players)}/{max_players})**",
+            ]
+            for i, p in enumerate(players, 1):
+                lines.append(f"{i}\u20e3 {p.mention}")
+            lines.append("")
+            lines.append(f"The game will start in **15 seconds** \u2022 Today at {ctx.created_at.strftime('%H:%M')}")
+            return discord.Embed(title="\U0001f3ad Mafia", description="\n".join(lines), color=0xED4245)
+
+        class JoinView(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=20)
+                self.game_started = False
+
+            @discord.ui.button(label="Join Game", style=discord.ButtonStyle.success, emoji="\U0001f3ae")
+            async def join_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if self.game_started:
+                    return await interaction.response.send_message("Game already started!", ephemeral=True)
+                if interaction.user in players:
+                    return await interaction.response.send_message("You already joined!", ephemeral=True)
+                if len(players) >= max_players:
+                    return await interaction.response.send_message("Game is full!", ephemeral=True)
+                players.append(interaction.user)
+                await interaction.response.edit_message(embed=build_embed(), view=self)
+
+            @discord.ui.button(label="Leave Game", style=discord.ButtonStyle.danger, emoji="\U0001f6ab")
+            async def leave_button(self, interaction: discord.Interaction, button: discord.ui.Button):
+                if self.game_started:
+                    return await interaction.response.send_message("Game already started!", ephemeral=True)
+                if interaction.user not in players:
+                    return await interaction.response.send_message("You\u2019re not in the game!", ephemeral=True)
+                if interaction.user == ctx.author:
+                    return await interaction.response.send_message("You can\u2019t leave your own game!", ephemeral=True)
+                players.remove(interaction.user)
+                await interaction.response.edit_message(embed=build_embed(), view=self)
+
+            async def on_timeout(self):
+                self.game_started = True
+                for child in self.children:
+                    child.disabled = True
+
+        view = JoinView()
+        msg = await ctx.send(embed=build_embed(), view=view)
+        await asyncio.sleep(15)
+        view.game_started = True
+        for child in view.children:
+            child.disabled = True
+        if len(players) < min_players:
+            return await msg.edit(embed=discord.Embed(title="Mafia", description=f"Need at least {min_players} players!", color=0xED4245), view=view)
 
         # Assign roles
-        num_mafia = max(1, len(members) // 3)
-        shuffled = members.copy()
+        num_mafia = max(1, len(players) // 3)
+        shuffled = players.copy()
         random.shuffle(shuffled)
-
-        roles = {}
-        for m in shuffled[:num_mafia]:
-            roles[m.id] = "🔪 Mafia"
-        for m in shuffled[num_mafia:]:
-            roles[m.id] = "👤 Civilian"
+        mafia_players = set(p.id for p in shuffled[:num_mafia])
+        civilian_players = set(p.id for p in shuffled[num_mafia:])
 
         # DM roles
-        for m in members:
+        for p in shuffled[:num_mafia]:
             try:
-                await m.send(embed=info("🎭 Mafia Game", f"Your role: **{roles[m.id]}**\n\nGame starts in chat!"))
+                await p.send(embed=discord.Embed(title="\U0001f3ad Mafia Game", description="Your role: **\U0001f52a Mafia**\n\nYou are a **mafia**! Try to eliminate civilians without getting caught.", color=0xED4245))
+            except discord.Forbidden:
+                pass
+        for p in shuffled[num_mafia:]:
+            try:
+                await p.send(embed=discord.Embed(title="\U0001f3ad Mafia Game", description="Your role: **\U0001f464 Civilian**\n\nYou are a **civilian**! Vote wisely to eliminate suspects.", color=0x57F287))
             except discord.Forbidden:
                 pass
 
-        embed = discord.Embed(
-            title="🎭 Mafia Game Started!",
-            description=f"**{len(members)}** players | **{num_mafia}** mafia\n\nRoles have been sent via DM!\n\n**Gameplay:**\n• Mafia tries to eliminate civilians\n• Civilians vote to eliminate suspects\n• Type `$vote @user` to vote\n• Most votes = eliminated!",
-            color=0xED4245
-        )
-        await ctx.send(embed=embed)
+        # Game loop
+        alive = set(p.id for p in players)
+        round_num = 1
 
-    # ── Would You Rather ───────────────────────────────────────────
+        while len(alive) > 2:
+            # Night phase - mafia kills
+            mafia_alive = [p for p in players if p.id in alive and p.id in mafia_players]
+            civilian_alive = [p for p in players if p.id in alive and p.id in civilian_players]
+
+            if not mafia_alive:
+                break  # Civilians win
+            if not civilian_alive:
+                break  # Mafia wins
+
+            # Mafia vote
+            night_embed = discord.Embed(
+                title=f"\U0001f3ad Mafia \u2014 Round {round_num}",
+                description="**Night phase:** Mafia are selecting a target...\n\nThis will take 30 seconds.",
+                color=0x2F3136
+            )
+            await ctx.send(embed=night_embed)
+            await asyncio.sleep(30)
+
+            # Kill a random civilian
+            victim = random.choice(civilian_alive)
+            alive.discard(victim.id)
+            await ctx.send(embed=discord.Embed(
+                title="\U0001f480 Night Results",
+                description=f"**{victim.mention}** was found dead this morning... \U0001f480",
+                color=0xED4245
+            ))
+
+            # Check win
+            mafia_alive = [p for p in players if p.id in alive and p.id in mafia_players]
+            civilian_alive = [p for p in players if p.id in alive and p.id in civilian_players]
+            if len(mafia_alive) >= len(civilian_alive):
+                await ctx.send(embed=discord.Embed(title="\U0001f3ad Mafia \u2014 Game Over", description="**Mafia wins!** \U0001f52a\nThe mafia have overtaken the town!", color=0xED4245))
+                return
+            if not mafia_alive:
+                await ctx.send(embed=discord.Embed(title="\U0001f3ad Mafia \u2014 Game Over", description="**Civilians win!** \U0001f389\nThe mafia have been eliminated!", color=0x57F287))
+                return
+
+            # Day phase - vote
+            alive_players = [p for p in players if p.id in alive]
+            votes = {}
+            vote_embed = discord.Embed(
+                title=f"\U0001f3ad Mafia \u2014 Round {round_num} (Day)",
+                description=f"**{len(alive)}** players remaining\n\nVote to eliminate a suspect! Type `$vote @user`",
+                color=0xFEE75C
+            )
+            await ctx.send(embed=vote_embed)
+
+            # Wait for votes
+            def check(m):
+                return m.author.id in alive and m.content.lower().startswith("$vote") and m.guild
+
+            for _ in range(60):
+                try:
+                    msg2 = await self.bot.wait_for("message", check=check, timeout=10)
+                    parts = msg2.content.split()
+                    if len(parts) >= 2:
+                        # Parse vote target
+                        target = None
+                        if msg2.mentions:
+                            target = msg2.mentions[0]
+                        else:
+                            try:
+                                target_id = int(parts[1].replace("<@", "").replace(">", ""))
+                                target = ctx.guild.get_member(target_id)
+                            except ValueError:
+                                pass
+                        if target and target.id in alive:
+                            votes[msg2.author.id] = target.id
+                            await ctx.send(f"{msg2.author.mention} voted for {target.mention}", delete_after=3)
+                except:
+                    pass
+
+            # Count votes
+            if votes:
+                vote_counts = {}
+                for voter, target in votes.items():
+                    vote_counts[target] = vote_counts.get(target, 0) + 1
+                eliminated_id = max(vote_counts, key=vote_counts.get)
+                eliminated = ctx.guild.get_member(eliminated_id)
+                alive.discard(eliminated_id)
+                await ctx.send(embed=discord.Embed(
+                    title=f"\U0001f3ad Round {round_num} Results",
+                    description=f"**{eliminated.mention}** was voted out! ({vote_counts[eliminated_id]} votes)\n\nThey were a **{'mafia' if eliminated_id in mafia_players else 'civilian'}**!",
+                    color=0xFEE75C
+                ))
+            else:
+                await ctx.send(embed=discord.Embed(title=f"Round {round_num}", description="No votes! No one was eliminated.", color=0xFEE75C))
+
+            round_num += 1
+
+        # Game end
+        if len([p for p in players if p.id in alive and p.id in mafia_players]) > 0:
+            await ctx.send(embed=discord.Embed(title="\U0001f3ad Mafia \u2014 Game Over", description="**Mafia wins!** \U0001f52a", color=0xED4245))
+        else:
+            await ctx.send(embed=discord.Embed(title="\U0001f3ad Mafia \u2014 Game Over", description="**Civilians win!** \U0001f389", color=0x57F287))
+
     @commands.hybrid_command(name="wyr", aliases=["wouldyourather"], description="Would you rather?")
     async def wyr(self, ctx: commands.Context):
         questions = [

@@ -265,6 +265,105 @@ class Moderation(commands.Cog):
             lines.append(f"`{i}.` **Reason:** {w['reason']}\n    **Mod:** {mod or 'Unknown'} | **Time:** {w['time'][:10]}")
         await ctx.send(embed=info(f"Warnings for {member_obj} ({len(warns)})", "\n".join(lines)))
 
+    # ── Lock ─────────────────────────────────────────────────────────────
+    @commands.command(name="lock", description="Lock the channel — only Co Owner+ can send messages")
+    @commands.cooldown(1, 5, commands.BucketType.channel)
+    async def lock(self, ctx: commands.Context):
+        if not self._check_permission(ctx.author, "lock"):
+            return
+
+        # Find Co Owner+ role by common names
+        co_owner_role = None
+        for name in ["Co Owner+", "Co Ownzzz", "Co Owner", "Co-Owner", "CoOwner", "Owner"]:
+            co_owner_role = discord.utils.get(ctx.guild.roles, name=name)
+            if co_owner_role:
+                break
+
+        # Deny send_messages for @everyone
+        await ctx.channel.set_permissions(ctx.guild.default_role, send_messages=False, reason=f"Locked by {ctx.author}")
+
+        # Allow send_messages for Co Owner+ role if found
+        if co_owner_role:
+            await ctx.channel.set_permissions(co_owner_role, send_messages=True, reason=f"Locked by {ctx.author}")
+
+        # Also allow for roles higher than the bot
+        for role in ctx.guild.roles:
+            if role > ctx.me.top_role and role != ctx.guild.default_role:
+                current = ctx.channel.overwrites_for(role)
+                if current.send_messages is not True:
+                    await ctx.channel.set_permissions(role, send_messages=True, reason=f"Locked by {ctx.author}")
+
+        desc = f"Channel locked by {ctx.author.mention}."
+        if co_owner_role:
+            desc += f"\nOnly **{co_owner_role.name}+** can send messages."
+        else:
+            desc += "\nOnly staff+ can send messages."
+        await ctx.send(embed=success("🔒 Channel Locked", desc))
+
+    # ── Unlock ───────────────────────────────────────────────────────────
+    @commands.command(name="unlock", description="Unlock the channel for everyone")
+    @commands.cooldown(1, 5, commands.BucketType.channel)
+    async def unlock(self, ctx: commands.Context):
+        if not self._check_permission(ctx.author, "lock"):
+            return
+
+        # Reset @everyone permissions
+        await ctx.channel.set_permissions(ctx.guild.default_role, send_messages=None, reason=f"Unlocked by {ctx.author}")
+
+        # Reset Co Owner+ override if exists
+        for name in ["Co Owner+", "Co Ownzzz", "Co Owner", "Co-Owner", "CoOwner", "Owner"]:
+            role = discord.utils.get(ctx.guild.roles, name=name)
+            if role:
+                await ctx.channel.set_permissions(role, send_messages=None, reason=f"Unlocked by {ctx.author}")
+                break
+
+        await ctx.send(embed=success("🔓 Channel Unlocked", f"Channel unlocked by {ctx.author.mention}. Everyone can now send messages."))
+
+    # ── Slowmode ─────────────────────────────────────────────────────────
+    @commands.command(name="slowmode", description="Set channel slowmode")
+    @commands.cooldown(1, 5, commands.BucketType.channel)
+    async def slowmode(self, ctx: commands.Context, duration: str = None):
+        if not self._check_permission(ctx.author, "slowmode"):
+            return
+        if not duration:
+            return await ctx.send(embed=self._usage_embed(
+                ctx, "slowmode", "Set the slowmode delay for this channel.", "5 seconds",
+                "slowmode [duration]",
+                ["slowmode 3s", "slowmode 30s", "slowmode 5m", "slowmode 0"]
+            ))
+
+        # Parse duration
+        duration = duration.strip().lower()
+        if duration in ("0", "off", "disable", "remove"):
+            await ctx.channel.edit(slowmode_delay=0, reason=f"Slowmode disabled by {ctx.author}")
+            return await ctx.send(embed=success("🐌 Slowmode", f"Slowmode disabled by {ctx.author.mention}."))
+
+        seconds = 0
+        unit = ""
+        if duration.endswith("s"):
+            seconds = int(duration[:-1])
+            unit = "second" if seconds == 1 else "seconds"
+        elif duration.endswith("m"):
+            seconds = int(duration[:-1]) * 60
+            unit = "minute" if seconds == 60 else "minutes"
+        elif duration.endswith("h"):
+            seconds = int(duration[:-1]) * 3600
+            unit = "hour" if seconds == 3600 else "hours"
+        elif duration.isdigit():
+            seconds = int(duration)
+            unit = "second" if seconds == 1 else "seconds"
+        else:
+            return await ctx.send(embed=error("Invalid Format", "Use: `3s`, `30s`, `5m`, `1h`, or `0` to disable."))
+
+        if seconds < 0 or seconds > 21600:
+            return await ctx.send(embed=error("Invalid Duration", "Slowmode must be between **0s** and **6 hours** (21600s)."))
+
+        await ctx.channel.edit(slowmode_delay=seconds, reason=f"Slowmode set by {ctx.author}")
+        if seconds == 0:
+            await ctx.send(embed=success("🐌 Slowmode", f"Slowmode disabled by {ctx.author.mention}."))
+        else:
+            await ctx.send(embed=success("🐌 Slowmode", f"Slowmode set to **{seconds} {unit}** by {ctx.author.mention}."))
+
     # ── Purge ────────────────────────────────────────────────────────────
     @commands.command(name="purge", description="Bulk delete messages in a channel")
     @commands.cooldown(1, 10, commands.BucketType.channel)

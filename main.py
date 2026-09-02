@@ -9,7 +9,7 @@ import utils
 
 # ── Settings cache (avoid reading JSON/HTTP on every message) ──────
 _settings_cache = {}
-_CACHE_TTL = 30  # seconds
+_CACHE_TTL = 2  # seconds (real-time sync via file mtime in config.py)
 
 
 def get_prefix(bot_instance, message):
@@ -154,7 +154,13 @@ async def on_command_error(ctx: commands.Context, error: discord.ext.commands.er
     if isinstance(error, commands.CommandOnCooldown):
         await ctx.send(embed=utils.warning("Cooldown", f"Try again in {error.retry_after:.1f}s."))
         return
-    if isinstance(error, (commands.MissingPermissions, commands.CheckFailure)):
+    if isinstance(error, commands.MissingPermissions):
+        return
+    if isinstance(error, commands.CheckFailure):
+        # Show permission denied message instead of silent ignore
+        msg = str(getattr(error, 'original', error) or error)
+        if 'No permission' in msg or msg in ('No permission', 'staff_role'):
+            await ctx.send(embed=utils.error("Permission Denied", "You don't have permission to use this command."), delete_after=5)
         return
     if isinstance(error, commands.BotMissingPermissions):
         await ctx.send(embed=utils.error("Bot Missing Permissions", f"I need: **{', '.join(error.missing_permissions)}**"))

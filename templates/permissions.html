@@ -13,7 +13,7 @@
             <span class="perm-cat-toggle">▼</span>
         </div>
         <div class="perm-category-body">
-            {% for cmd, desc in [("ban", "Ban a member from the server"), ("kick", "Kick a member from the server"), ("mute", "Timeout (mute) a member"), ("unmute", "Remove timeout from a member"), ("warn", "Warn a member"), ("warnings", "View warnings for a member"), ("purge", "Bulk delete messages")] %}
+            {% for cmd, desc in [("ban", "Ban a member from the server"), ("kick", "Kick a member from the server"), ("mute", "Timeout (mute) a member"), ("unmute", "Remove timeout from a member"), ("warn", "Warn a member"), ("warnings", "View warnings for a member"), ("purge", "Bulk delete messages"), ("lock", "Lock channel for all except Co Owner+"), ("unlock", "Unlock channel for everyone"), ("slowmode", "Set channel slowmode delay")] %}
             <div class="perm-row" data-cmd="{{ cmd }}">
                 <div class="perm-info">
                     <code>${{ cmd }}</code>
