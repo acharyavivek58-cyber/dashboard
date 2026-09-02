@@ -1,5 +1,4 @@
 import os
-import json
 import secrets
 import functools
 from urllib.parse import urlencode
@@ -12,150 +11,18 @@ from flask import (
     Flask, redirect, request, session, render_template, jsonify, url_for
 )
 
+import config
+from config import (
+    load_settings, save_settings, get_guild_settings, set_guild_settings,
+    DISCORD_CLIENT_ID, DISCORD_CLIENT_SECRET, DISCORD_REDIRECT_URI,
+    DISCORD_BOT_TOKEN,
+)
+
 app = Flask(__name__)
 app.secret_key = os.getenv("FLASK_SECRET", secrets.token_hex(32))
 
-DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
-DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
-DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", "http://localhost:5000/callback")
-DISCORD_BOT_TOKEN = os.getenv("BOT_TOKEN", "")
 
-SETTINGS_FILE = "bot_settings.json"
-
-
-def load_settings() -> dict:
-    if os.path.exists(SETTINGS_FILE):
-        with open(SETTINGS_FILE, "r") as f:
-            return json.load(f)
-    return {}
-
-
-def save_settings(data: dict):
-    with open(SETTINGS_FILE, "w") as f:
-        json.dump(data, f, indent=2)
-
-
-DEFAULT_SETTINGS = {
-    "prefix": "$",
-    "aliases": {},
-    "permissions": {
-        "ban": {"roles": [], "everyone": False},
-        "kick": {"roles": [], "everyone": False},
-        "mute": {"roles": [], "everyone": False},
-        "unmute": {"roles": [], "everyone": False},
-        "warn": {"roles": [], "everyone": False},
-        "warnings": {"roles": [], "everyone": True},
-        "purge": {"roles": [], "everyone": False},
-        "ticketsetup": {"roles": [], "everyone": False},
-        "ticketrole": {"roles": [], "everyone": False},
-        "tickettype": {"roles": [], "everyone": False},
-        "closetype": {"roles": [], "everyone": False},
-        "sendpanels": {"roles": [], "everyone": False},
-        "movetickets": {"roles": [], "everyone": False},
-        "close": {"roles": [], "everyone": False},
-        "add": {"roles": [], "everyone": False},
-        "remove": {"roles": [], "everyone": False},
-        "afk": {"roles": [], "everyone": True},
-        "invites": {"roles": [], "everyone": True},
-        "inviteboard": {"roles": [], "everyone": True},
-        "invitestats": {"roles": [], "everyone": True},
-        "giveaway": {"roles": [], "everyone": False},
-        "giveawayend": {"roles": [], "everyone": False},
-        "giveawayreroll": {"roles": [], "everyone": False},
-        "play": {"roles": [], "everyone": True},
-        "pause": {"roles": [], "everyone": True},
-        "resume": {"roles": [], "everyone": True},
-        "skip": {"roles": [], "everyone": True},
-        "stop": {"roles": [], "everyone": True},
-        "queue": {"roles": [], "everyone": True},
-        "nowplaying": {"roles": [], "everyone": True},
-        "volume": {"roles": [], "everyone": True},
-        "shuffle": {"roles": [], "everyone": True},
-        "loop": {"roles": [], "everyone": True},
-        "removesong": {"roles": [], "everyone": True},
-        "clear": {"roles": [], "everyone": True},
-        "join": {"roles": [], "everyone": True},
-        "leave": {"roles": [], "everyone": True},
-        "roulette": {"roles": [], "everyone": True},
-        "dice": {"roles": [], "everyone": True},
-        "rps": {"roles": [], "everyone": True},
-        "xo": {"roles": [], "everyone": True},
-        "hotxo": {"roles": [], "everyone": True},
-        "deathwheel": {"roles": [], "everyone": True},
-        "chairs": {"roles": [], "everyone": True},
-        "hideandseek": {"roles": [], "everyone": True},
-        "replica": {"roles": [], "everyone": True},
-        "guesscountry": {"roles": [], "everyone": True},
-        "mafia": {"roles": [], "everyone": True},
-        "wyr": {"roles": [], "everyone": True},
-        "fastclick": {"roles": [], "everyone": True},
-        "fasttype": {"roles": [], "everyone": True},
-        "textsplit": {"roles": [], "everyone": True},
-        "textmerge": {"roles": [], "everyone": True},
-        "flag": {"roles": [], "everyone": True},
-        "textreverse": {"roles": [], "everyone": True},
-        "findletter": {"roles": [], "everyone": True},
-        "correctletter": {"roles": [], "everyone": True},
-        "sortnumbers": {"roles": [], "everyone": True},
-        "guesscolor": {"roles": [], "everyone": True},
-        "emoji": {"roles": [], "everyone": True},
-        "reveal": {"roles": [], "everyone": True},
-        "trivia": {"roles": [], "everyone": True},
-        "triviascore": {"roles": [], "everyone": True},
-        "trivialeaderboard": {"roles": [], "everyone": True},
-        "role": {"roles": [], "everyone": False},
-        "createrole": {"roles": [], "everyone": False},
-        "deleterole": {"roles": [], "everyone": False},
-        "ping": {"roles": [], "everyone": True},
-        "uptime": {"roles": [], "everyone": True},
-        "userinfo": {"roles": [], "everyone": True},
-        "serverinfo": {"roles": [], "everyone": True},
-        "avatar": {"roles": [], "everyone": True},
-        "servericon": {"roles": [], "everyone": True},
-        "id": {"roles": [], "everyone": True},
-        "say": {"roles": [], "everyone": False},
-        "8ball": {"roles": [], "everyone": True},
-        "coinflip": {"roles": [], "everyone": True},
-        "reverse": {"roles": [], "everyone": True},
-        "choose": {"roles": [], "everyone": True},
-        "poll": {"roles": [], "everyone": True},
-        "remind": {"roles": [], "everyone": True},
-        "reminders": {"roles": [], "everyone": True},
-        "count": {"roles": [], "everyone": True},
-        "countreset": {"roles": [], "everyone": False},
-        "countset": {"roles": [], "everyone": False},
-        "countlb": {"roles": [], "everyone": True},
-        "automod": {"roles": [], "everyone": False},
-        "automodconfig": {"roles": [], "everyone": False},
-        "clearwarns": {"roles": [], "everyone": False},
-        "reactionrole": {"roles": [], "everyone": False},
-        "reactionroleadd": {"roles": [], "everyone": False},
-        "reactionroledel": {"roles": [], "everyone": False},
-        "reactionroles": {"roles": [], "everyone": False},
-    }
-}
-
-
-def get_guild_settings(guild_id: str) -> dict:
-    settings = load_settings()
-    defaults = json.loads(json.dumps(DEFAULT_SETTINGS))
-    stored = settings.get(guild_id, {})
-    if "permissions" not in stored:
-        stored["permissions"] = defaults["permissions"]
-    else:
-        for cmd, data in defaults["permissions"].items():
-            if cmd not in stored["permissions"]:
-                stored["permissions"][cmd] = data
-    defaults.update(stored)
-    return defaults
-
-
-def set_guild_settings(guild_id: str, data: dict):
-    settings = load_settings()
-    settings[guild_id] = data
-    save_settings(settings)
-
-
+# ── Discord API helpers ────────────────────────────────────────
 def get_user_guilds(token: str) -> list:
     resp = requests.get(
         "https://discord.com/api/v10/users/@me/guilds",
@@ -207,6 +74,7 @@ def get_mutual_guilds(user_token: str) -> list:
     ]
 
 
+# ── Auth decorators ────────────────────────────────────────────
 def login_required(f):
     @functools.wraps(f)
     def decorated(*args, **kwargs):
@@ -229,6 +97,7 @@ def admin_required(f):
     return decorated
 
 
+# ── Routes ─────────────────────────────────────────────────────
 @app.route("/")
 def index():
     if "user_token" in session:
@@ -341,6 +210,7 @@ def guild_counting(guild_id):
     return render_template("counting.html", guild=guild, settings=settings, user=session.get("user"))
 
 
+# ── API routes ─────────────────────────────────────────────────
 @app.route("/api/settings/<guild_id>", methods=["GET"])
 @admin_required
 def get_settings(guild_id):

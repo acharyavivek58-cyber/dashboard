@@ -14,26 +14,19 @@ class Moderation(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.warnings: dict[int, list[dict]] = {}
+        self._load_warnings()
+
+    def _load_warnings(self):
+        data = config.load_state("mod_warnings.json")
+        for gid_s, warns in data.items():
+            self.warnings[int(gid_s)] = warns
+
+    def _save_warnings(self):
+        data = {str(gid): warns for gid, warns in self.warnings.items()}
+        config.save_state("mod_warnings.json", data)
 
     def _check_permission(self, member: discord.Member, command: str) -> bool:
-        if member.id == member.guild.owner_id:
-            return True
-        settings = config.get_guild_settings(str(member.guild.id))
-        permissions = settings.get("permissions", {})
-        cmd_perm = permissions.get(command, {})
-        # If no permissions configured for this command, allow everyone with Manage Server
-        if not cmd_perm or (not cmd_perm.get("roles") and not cmd_perm.get("everyone")):
-            return member.guild_permissions.manage_guild
-        if cmd_perm.get("everyone", False):
-            return True
-        allowed_role_ids = cmd_perm.get("roles", [])
-        if not allowed_role_ids:
-            return False
-        user_role_ids = [str(r.id) for r in member.roles]
-        for role_id in allowed_role_ids:
-            if role_id in user_role_ids:
-                return True
-        return False
+        return config.has_permission(command, member)
 
     async def _resolve_member(self, ctx: commands.Context, value: str) -> discord.Member | None:
         if ctx.message and ctx.message.mentions:
@@ -246,6 +239,7 @@ class Moderation(commands.Cog):
             "mod": ctx.author.id, "time": datetime.datetime.now(datetime.timezone.utc).isoformat(),
         })
         count = sum(1 for w in self.warnings[gid] if w["user"] == member_obj.id)
+        self._save_warnings()
         await ctx.send(embed=success("⚠️ Warned", f"**{member_obj}** has been warned.\n**Total warnings:** {count}\n**Reason:** {reason}"))
 
     # ── Warnings ─────────────────────────────────────────────────────────

@@ -4,6 +4,7 @@ from discord import app_commands
 import asyncio
 import datetime
 import random
+import config
 from utils import success, error, info, warning
 
 
@@ -14,6 +15,13 @@ class Giveaway(commands.Cog):
         self.bot = bot
         self.active_giveaways: dict[int, dict] = {}
         self.giveaway_loop.start()
+
+    async def cog_before_invoke(self, ctx: commands.Context):
+        if ctx.author.id == ctx.guild.owner_id:
+            return
+        cmd_name = ctx.command.qualified_name.split()[0]
+        if not config.has_permission(cmd_name, ctx.author):
+            raise commands.CommandError('No permission')
 
     def cog_unload(self):
         self.giveaway_loop.cancel()

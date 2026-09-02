@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import datetime
+import config
 from utils import success, error, info, member_embed, server_embed
 
 
@@ -11,6 +12,14 @@ class Utility(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.start_time = datetime.datetime.now(datetime.timezone.utc)
+
+    async def cog_before_invoke(self, ctx: commands.Context):
+        """Check dashboard permissions for utility commands."""
+        if ctx.author.id == ctx.guild.owner_id:
+            return
+        cmd_name = ctx.command.qualified_name.split()[0]
+        if not config.has_permission(cmd_name, ctx.author):
+            raise commands.CommandError('No permission')
 
     # ── Ping ─────────────────────────────────────────────────────────────
     @commands.hybrid_command(name="ping", description="Check bot latency")

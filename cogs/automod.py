@@ -5,6 +5,7 @@ import re
 import time
 import datetime
 from collections import defaultdict
+import config
 from utils import success, error, info, warning
 
 
@@ -43,6 +44,35 @@ class AutoMod(commands.Cog):
         self.spam_tracker: dict[int, list[float]] = defaultdict(list)
         self.warnings: dict[int, dict[int, int]] = defaultdict(lambda: defaultdict(int))
         self.cuss_warnings: dict[int, dict[int, int]] = defaultdict(lambda: defaultdict(int))
+        self._load_warnings()
+
+    async def cog_before_invoke(self, ctx: commands.Context):
+        """Check dashboard permissions for automod commands."""
+        if ctx.author.id == ctx.guild.owner_id:
+            return
+        cmd_name = ctx.command.qualified_name.split()[0]
+        if not config.has_permission(cmd_name, ctx.author):
+            raise commands.CommandError('No permission')
+
+    def _load_warnings(self):
+        data = config.load_state("automod_warnings.json")
+        for gid_s, users in data.items():
+            gid = int(gid_s)
+            for uid_s, count in users.items():
+                self.warnings[gid][int(uid_s)] = count
+        data2 = config.load_state("automod_cuss_warnings.json")
+        for gid_s, users in data2.items():
+            gid = int(gid_s)
+            for uid_s, count in users.items():
+                self.cuss_warnings[gid][int(uid_s)] = count
+
+    def _save_warnings(self):
+        data = {str(gid): {str(uid): c for uid, c in users.items()}
+                for gid, users in self.warnings.items()}
+        config.save_state("automod_warnings.json", data)
+        data2 = {str(gid): {str(uid): c for uid, c in users.items()}
+                 for gid, users in self.cuss_warnings.items()}
+        config.save_state("automod_cuss_warnings.json", data2)
 
     AUTO_MOD_CONFIG = {
         "max_caps_percent": 70,
@@ -167,6 +197,7 @@ class AutoMod(commands.Cog):
                     color=0xFEE75C
                 )
                 await message.channel.send(embed=embed, delete_after=8)
+            self._save_warnings()
             return
 
         # ── Other automod violations (spam, caps, etc) ──
@@ -197,6 +228,7 @@ class AutoMod(commands.Cog):
                     await message.channel.send(embed=timeout_embed, delete_after=15)
                 except discord.HTTPException:
                     pass
+            self._save_warnings()
 
     @commands.hybrid_command(name="automod", description="Toggle auto-moderation settings")
     @commands.has_permissions(administrator=True)
@@ -233,6 +265,7 @@ class AutoMod(commands.Cog):
     async def clearwarns(self, ctx: commands.Context, member: discord.Member):
         self.warnings[ctx.guild.id][member.id] = 0
         self.cuss_warnings[ctx.guild.id][member.id] = 0
+        self._save_warnings()
         await ctx.send(embed=success("✅ Cleared", f"AutoMod warnings cleared for **{member}**."))
 
 

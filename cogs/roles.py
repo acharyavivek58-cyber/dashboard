@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
+import config
 from utils import success, error, info
 
 
@@ -9,6 +10,13 @@ class Roles(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
+    async def cog_before_invoke(self, ctx: commands.Context):
+        if ctx.author.id == ctx.guild.owner_id:
+            return
+        cmd_name = ctx.command.qualified_name.split()[0]
+        if not config.has_permission(cmd_name, ctx.author):
+            raise commands.CommandError('No permission')
 
     # ── Add Role ─────────────────────────────────────────────────────────
     @commands.hybrid_command(name="role", description="Add or remove a role from a member")

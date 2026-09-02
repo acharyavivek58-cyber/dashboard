@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 import random
 import asyncio
+import config
 from utils import success, error, info, warning
 
 
@@ -16,7 +17,7 @@ class Games(commands.Cog):
         self.bot = bot
 
     async def cog_before_invoke(self, ctx: commands.Context):
-        """Lock all game commands to the designated channel."""
+        """Lock all game commands to the designated channel and check permissions."""
         if ctx.channel.id != GAMES_CHANNEL_ID:
             channel = ctx.guild.get_channel(GAMES_CHANNEL_ID)
             if channel:
@@ -24,6 +25,10 @@ class Games(commands.Cog):
             else:
                 await ctx.send(embed=error("Wrong Channel", "Games can only be played in the designated games channel!"), delete_after=5)
             raise commands.CommandError('Not in games channel')
+        # Check dashboard permissions
+        cmd_name = ctx.command.qualified_name.split()[0]
+        if not config.has_permission(cmd_name, ctx.author):
+            raise commands.CommandError('No permission')
 
     # ── Roulette ───────────────────────────────────────────────────
     @commands.hybrid_command(name="roulette", description="Spin the wheel of fate — will you survive?")

@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
-from datetime import datetime
+from datetime import datetime, timezone
+import config
 import utils
 
 
@@ -94,12 +95,19 @@ class AFK(commands.Cog):
         self.pending_messages = {} # {guild_id: {user_id: [{"from": user, "message": str}]}}
         self.notify_queue = {}     # {guild_id: {user_id: [requester_ids]}}
 
+    async def cog_before_invoke(self, ctx: commands.Context):
+        if ctx.author.id == ctx.guild.owner_id:
+            return
+        cmd_name = ctx.command.qualified_name.split()[0]
+        if not config.has_permission(cmd_name, ctx.author):
+            raise commands.CommandError('No permission')
+
     def _set_afk(self, guild_id, user_id, reason="AFK"):
         if guild_id not in self.afk_users:
             self.afk_users[guild_id] = {}
         self.afk_users[guild_id][user_id] = {
             "reason": reason,
-            "since": datetime.utcnow(),
+            "since": datetime.now(timezone.utc),
         }
 
     def _remove_afk(self, guild_id, user_id):
@@ -111,7 +119,7 @@ class AFK(commands.Cog):
         return self.afk_users.get(guild_id, {}).get(user_id)
 
     def _format_duration(self, since):
-        seconds = int((datetime.utcnow() - since).total_seconds())
+        seconds = int((datetime.now(timezone.utc) - since).total_seconds())
         if seconds < 60:
             return f"{seconds}s"
         elif seconds < 3600:

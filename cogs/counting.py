@@ -5,6 +5,7 @@ from utils import success, error, info
 import json
 import os
 import asyncio
+import config
 
 DATA_FILE = "counting_data.json"
 COUNTING_CHANNEL_ID = 1543631917855805441
@@ -19,6 +20,13 @@ class Counting(commands.Cog):
         self._processing = set()
         print(f"[Counting] Loaded. Channel: {COUNTING_CHANNEL_ID}")
         print(f"[Counting] Data: {self.data}")
+
+    async def cog_before_invoke(self, ctx: commands.Context):
+        if ctx.author.id == ctx.guild.owner_id:
+            return
+        cmd_name = ctx.command.qualified_name.split()[0]
+        if not config.has_permission(cmd_name, ctx.author):
+            raise commands.CommandError('No permission')
 
     def _load(self) -> dict:
         if os.path.exists(DATA_FILE):

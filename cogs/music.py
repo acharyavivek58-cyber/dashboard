@@ -1,6 +1,7 @@
 import discord
 from discord.ext import commands
 import asyncio
+import config
 import utils
 
 try:
@@ -70,6 +71,14 @@ class Music(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.players = {}  # guild_id -> MusicPlayer
+
+    async def cog_before_invoke(self, ctx: commands.Context):
+        """Check dashboard permissions for music commands."""
+        if ctx.author.id == ctx.guild.owner_id:
+            return
+        cmd_name = ctx.command.qualified_name.split()[0]
+        if not config.has_permission(cmd_name, ctx.author):
+            raise commands.CommandError('No permission')
 
     def get_player(self, guild_id):
         if guild_id not in self.players:

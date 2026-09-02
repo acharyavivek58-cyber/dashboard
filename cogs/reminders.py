@@ -4,6 +4,7 @@ from discord import app_commands
 import asyncio
 import datetime
 import re
+import config
 from utils import success, error, info
 
 
@@ -13,6 +14,13 @@ class Reminders(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.active_reminders: dict[int, asyncio.Task] = {}
+
+    async def cog_before_invoke(self, ctx: commands.Context):
+        if ctx.author.id == ctx.guild.owner_id:
+            return
+        cmd_name = ctx.command.qualified_name.split()[0]
+        if not config.has_permission(cmd_name, ctx.author):
+            raise commands.CommandError('No permission')
 
     def _parse_time(self, text: str) -> datetime.timedelta | None:
         """Parse time strings like 30s, 10m, 2h, 1d."""

@@ -3,6 +3,7 @@ from discord.ext import commands
 from discord import app_commands
 import json
 import os
+import config
 from utils import success, error, info
 
 
@@ -27,6 +28,13 @@ class ReactionRoles(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.data = load_reaction_roles()
+
+    async def cog_before_invoke(self, ctx: commands.Context):
+        if ctx.author.id == ctx.guild.owner_id:
+            return
+        cmd_name = ctx.command.qualified_name.split()[0]
+        if not config.has_permission(cmd_name, ctx.author):
+            raise commands.CommandError('No permission')
 
     def _get_config(self, guild_id: int) -> dict:
         return self.data.get(str(guild_id), {})

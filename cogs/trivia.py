@@ -4,30 +4,16 @@ from discord import app_commands
 import aiohttp
 import html
 import random
-import json
-import os
+import config
 from utils import success, error, info
 
 
-TRIVIA_FILE = "trivia_scores.json"
-
-
 def load_scores() -> dict:
-    if os.path.exists(TRIVIA_FILE):
-        try:
-            with open(TRIVIA_FILE, "r") as f:
-                return json.load(f)
-        except (json.JSONDecodeError, IOError):
-            return {}
-    return {}
+    return config.load_state("trivia_scores.json")
 
 
 def save_scores(data: dict):
-    try:
-        with open(TRIVIA_FILE, "w") as f:
-            json.dump(data, f, indent=2)
-    except IOError:
-        pass
+    config.save_state("trivia_scores.json", data)
 
 
 # ── Built-in fallback questions ────────────────────────────────────
@@ -99,6 +85,8 @@ class TriviaView(discord.ui.View):
         await self._answer(interaction, button.label)
 
     async def _answer(self, interaction: discord.Interaction, choice: str):
+        if not config.has_permission("trivia", interaction.user):
+            return await interaction.response.send_message(embed=error("Permission Denied", "You don't have permission to play trivia."), ephemeral=True)
         if interaction.user.id != self.user_id:
             return await interaction.response.send_message("This isn't your question!", ephemeral=True)
 
@@ -140,6 +128,14 @@ class Trivia(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+
+    async def cog_before_invoke(self, ctx: commands.Context):
+        """Check dashboard permissions for trivia commands."""
+        if ctx.author.id == ctx.guild.owner_id:
+            return
+        cmd_name = ctx.command.qualified_name.split()[0]
+        if not config.has_permission(cmd_name, ctx.author):
+            raise commands.CommandError('No permission')
 
     async def _fetch_question(self) -> dict | None:
         """Fetch a random question from Open Trivia DB."""

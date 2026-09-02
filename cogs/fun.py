@@ -2,11 +2,19 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import random
+import config
 from utils import success, info
 
 
 class Fun(commands.Cog):
     """Fun commands — 8ball, coinflip, dice, reverse, say, choose."""
+
+    async def cog_before_invoke(self, ctx: commands.Context):
+        if ctx.author.id == ctx.guild.owner_id:
+            return
+        cmd_name = ctx.command.qualified_name.split()[0]
+        if not config.has_permission(cmd_name, ctx.author):
+            raise commands.CommandError('No permission')
 
     @commands.hybrid_command(name="8ball", description="Ask the magic 8-ball a question")
     @app_commands.describe(question="Your question")

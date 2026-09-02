@@ -72,12 +72,23 @@ async def on_ready():
 
     try:
         app_id = str(bot.user.id)
-        old_names = ["ban", "kick", "mute", "unmute", "warn", "warnings", "purge"]
+        old_names = {"ban", "kick", "mute", "unmute", "warn", "warnings", "purge"}
+        # Delete old slash commands from Discord's API
         registered = await bot.http.get_global_commands(app_id)
         for cmd in registered:
             if cmd["name"] in old_names:
                 await bot.http.delete_global_command(app_id, cmd["id"])
                 print(f"  Removed: /{cmd['name']}")
+        # Also delete guild-specific old slash commands
+        for guild in bot.guilds:
+            try:
+                guild_cmds = await bot.http.get_guild_commands(app_id, str(guild.id))
+                for cmd in guild_cmds:
+                    if cmd["name"] in old_names:
+                        await bot.http.delete_guild_command(app_id, str(guild.id), cmd["id"])
+                        print(f"  Removed: /{cmd['name']} from {guild.name}")
+            except Exception:
+                pass
         synced = await bot.tree.sync()
         print(f"  Synced {len(synced)} slash commands.")
     except Exception as e:
