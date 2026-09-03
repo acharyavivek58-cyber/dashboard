@@ -11,8 +11,26 @@ LOG_CHANNEL_ID = int(os.getenv("LOG_CHANNEL_ID", "0") or 0)
 # Dashboard
 DISCORD_CLIENT_ID = os.getenv("DISCORD_CLIENT_ID", "")
 DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
-DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", "http://localhost:5000/callback")
+# Empty = not configured → dashboard.py derives the URI from the real
+# request origin so local runs round-trip to whatever port is served.
+DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", "")
 DISCORD_BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+
+
+def dashboard_port():
+    """Deterministic web port for the dashboard.
+
+    PORT is honored when it is a positive integer (Render sets its own);
+    anything else — unset, non-numeric, or <= 0 (some launchers export
+    PORT=0, which means "random port" to Flask) — falls back to 5000 so
+    local runs are reproducible and the OAuth callback stays reachable.
+    """
+    raw = os.getenv("PORT") or ""
+    try:
+        port = int(raw)
+    except (TypeError, ValueError):
+        port = 0
+    return port if port > 0 else 5000
 
 SETTINGS_FILE = "bot_settings.json"
 
@@ -216,13 +234,24 @@ def save_state(filename: str, data: dict):
 
 
 # ── Unified permission check ──────────────────────────────────
+
+# Commands that only Manage Server holders may run when nothing is
+# configured on the dashboard (mirrors the dashboard's Co-Owner+ tier:
+# ban/kick + lock family). Every other restricted command falls back to
+# the wider mod trio (Manage Server / Manage Messages / Mute Members).
+_ADMIN_FALLBACK_COMMANDS = {"ban", "kick", "lock", "unlock", "slowmode"}
+
+
 def has_permission(command_name: str, member) -> bool:
     """Check if a member can use a command based on dashboard permissions.
 
     Returns True if:
     - Member is the server owner
     - Permission is set to everyone=True
-    - No roles configured and member has Manage Server
+    - No roles configured and member qualifies for the command's class:
+      admin-class commands (ban/kick/lock/unlock/slowmode) require Manage
+      Server; mod-class commands allow Manage Server / Manage Messages /
+      Mute Members
     - Member has one of the configured roles
     """
     if member.id == member.guild.owner_id:
@@ -230,9 +259,12 @@ def has_permission(command_name: str, member) -> bool:
     settings = get_guild_settings(str(member.guild.id))
     permissions = settings.get("permissions", {})
     cmd_perm = permissions.get(command_name, {})
-    # If no permissions configured, allow Manage Server OR mod-level permissions
+    # Nothing configured — fall back by command class so a low-privilege
+    # mute-mod cannot run admin commands like $ban/$kick/$lock.
     if not cmd_perm or (not cmd_perm.get("roles") and not cmd_perm.get("everyone")):
         perms = member.guild_permissions
+        if command_name in _ADMIN_FALLBACK_COMMANDS:
+            return perms.manage_guild
         return perms.manage_guild or perms.manage_messages or perms.mute_members
     if cmd_perm.get("everyone", False):
         return True

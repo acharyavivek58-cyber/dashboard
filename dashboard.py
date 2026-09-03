@@ -98,6 +98,21 @@ def admin_required(f):
 
 
 # ── Routes ─────────────────────────────────────────────────────
+
+def oauth_redirect_uri():
+    """The exact redirect URI for this request.
+
+    Uses the configured DISCORD_REDIRECT_URI when set (Render and any
+    deployment with a public hostname set it explicitly); otherwise it
+    derives from the real request origin — scheme://host/callback — so
+    a local login round-trips to the exact port being served instead of
+    a hardcoded one.
+    """
+    if DISCORD_REDIRECT_URI:
+        return DISCORD_REDIRECT_URI
+    return request.url_root.rstrip("/") + "/callback"
+
+
 @app.route("/")
 def index():
     if "user_token" in session:
@@ -109,7 +124,7 @@ def index():
 def login():
     params = {
         "client_id": DISCORD_CLIENT_ID,
-        "redirect_uri": DISCORD_REDIRECT_URI,
+        "redirect_uri": oauth_redirect_uri(),
         "response_type": "code",
         "scope": "identify guilds",
     }
@@ -124,7 +139,7 @@ def callback():
     data = {
         "grant_type": "authorization_code",
         "code": code,
-        "redirect_uri": DISCORD_REDIRECT_URI,
+        "redirect_uri": oauth_redirect_uri(),
     }
     headers = {"Content-Type": "application/x-www-form-urlencoded"}
     resp = requests.post(
@@ -156,6 +171,12 @@ def logout():
 def dashboard():
     guilds = get_mutual_guilds(session["user_token"])
     return render_template("dashboard.html", guilds=guilds, user=session.get("user"))
+
+
+@app.route("/showcase")
+@login_required
+def showcase():
+    return render_template("showcase.html", user=session.get("user"))
 
 
 @app.route("/dashboard/<guild_id>")
@@ -285,6 +306,10 @@ def get_roles(guild_id):
     return jsonify(get_guild_roles(guild_id))
 
 
+@app.errorhandler(404)
+def not_found(e):
+    return render_template("404.html"), 404
+
+
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=True)
+    app.run(host="0.0.0.0", port=config.dashboard_port(), debug=True)

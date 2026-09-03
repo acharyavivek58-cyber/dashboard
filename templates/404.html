@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}404 · Aravix{% endblock %}
+{% block meta_description %}This page drifted out of orbit — nothing lives here.{% endblock %}
+{% block fullpage %}
+<div class="login-page">
+    <div class="login-content">
+        <div class="rv">
+            <span class="eyebrow">Error 404 · Lost Signal</span>
+            <h1 class="login-title">Nothing<br><span class="grad">out here.</span></h1>
+            <p class="login-sub">
+                The page you're looking for drifted out of orbit — it may have been
+                moved, renamed, or never existed. Let's get you back to the deck.
+            </p>
+            <div style="display:flex;gap:.8rem;justify-content:center;flex-wrap:wrap;">
+                <a href="/" class="btn-discord" style="padding:.8rem 1.8rem;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+                    Back home
+                </a>
+                <a href="/dashboard" class="btn btn-ghost" style="padding:.8rem 1.8rem;">Open dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

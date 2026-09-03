@@ -4,6 +4,9 @@ __pycache__/
 bot_settings.json
 invite_data.json
 counting_data.json
+# Runtime state + per-guild config (never commit live data)
+state/
+tickets.json
 .freebuff/
 *.log
 *.log.err

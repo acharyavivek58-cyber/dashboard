@@ -1,12 +1,13 @@
 {% extends "base.html" %}
-{% block title %}{{ guild.name }} — Settings{% endblock %}
+{% block title %}{{ guild.name }} · Settings{% endblock %}
+{% block meta_description %}Server settings for {{ guild.name }} — prefix, welcome messages, auto-role and logging.{% endblock %}
 {% block page_title %}Server Settings{% endblock %}
 {% block content %}
 <div class="settings-grid">
     <!-- Prefix -->
     <div class="settings-card">
         <div class="settings-card-header">
-            <h3>🔧 Bot Prefix</h3>
+            <h3>Bot Prefix</h3>
         </div>
         <div class="settings-card-body">
             <p class="settings-desc">Change the command prefix for this server.</p>
@@ -21,7 +22,7 @@
     <!-- Welcome -->
     <div class="settings-card">
         <div class="settings-card-header">
-            <h3>👋 Welcome Messages</h3>
+            <h3>Welcome Messages</h3>
             <label class="toggle">
                 <input type="checkbox" id="welcome-enabled" {{ "checked" if settings.welcome_enabled }} onchange="saveSetting('welcome_enabled', this.checked)">
                 <span class="toggle-slider"></span>
@@ -46,7 +47,7 @@
     <!-- Auto-Role -->
     <div class="settings-card">
         <div class="settings-card-header">
-            <h3>🏷️ Auto-Role</h3>
+            <h3>Auto-Role</h3>
             <label class="toggle">
                 <input type="checkbox" id="autorole-enabled" {{ "checked" if settings.autorole_enabled }} onchange="saveSetting('autorole_enabled', this.checked)">
                 <span class="toggle-slider"></span>
@@ -66,7 +67,7 @@
     <!-- Logging -->
     <div class="settings-card">
         <div class="settings-card-header">
-            <h3>📝 Logging</h3>
+            <h3>Logging</h3>
             <label class="toggle">
                 <input type="checkbox" id="logging-enabled" {{ "checked" if settings.logging_enabled }} onchange="saveSetting('logging_enabled', this.checked)">
                 <span class="toggle-slider"></span>

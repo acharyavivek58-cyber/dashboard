@@ -1,11 +1,12 @@
 {% extends "base.html" %}
-{% block title %}{{ guild.name }} — Counting{% endblock %}
+{% block title %}{{ guild.name }} · Counting{% endblock %}
+{% block meta_description %}Counting game channel rules and commands for {{ guild.name }}.{% endblock %}
 {% block page_title %}Counting Game{% endblock %}
 {% block content %}
 <div class="settings-grid">
     <div class="settings-card full-width">
         <div class="settings-card-header">
-            <h3>🔢 Counting Channel</h3>
+            <h3>Counting Channel</h3>
         </div>
         <div class="settings-card-body">
             <p class="settings-desc">The counting game is locked to a specific channel. Users take turns typing the next number.</p>
@@ -45,7 +46,7 @@
 
     <div class="settings-card">
         <div class="settings-card-header">
-            <h3>⌨️ Commands</h3>
+            <h3>Commands</h3>
         </div>
         <div class="settings-card-body">
             <div class="command-examples">
@@ -59,7 +60,7 @@
 
     <div class="settings-card">
         <div class="settings-card-header">
-            <h3>💡 Tips</h3>
+            <h3>Tips</h3>
         </div>
         <div class="settings-card-body">
             <p class="settings-desc">Channel ID: <code>1543631917855805441</code></p>

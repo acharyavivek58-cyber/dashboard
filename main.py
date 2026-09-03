@@ -171,18 +171,15 @@ async def on_command_error(ctx: commands.Context, error: discord.ext.commands.er
 
 # ── Dashboard thread ───────────────────────────────────────────────
 def start_dashboard():
-    import os
     from dashboard import app
-    port = int(os.environ.get("PORT", 5000))
-    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+    app.run(host="0.0.0.0", port=config.dashboard_port(), debug=False, use_reloader=False)
 
 
 # ── Main ───────────────────────────────────────────────────────────
 async def main():
     dashboard_thread = threading.Thread(target=start_dashboard, daemon=True)
     dashboard_thread.start()
-    import os
-    port = int(os.environ.get("PORT", 5000))
+    port = config.dashboard_port()
     print(f"  Dashboard: http://localhost:{port}")
 
     async with bot:
