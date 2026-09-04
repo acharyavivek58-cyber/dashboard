@@ -1,3 +1,6 @@
+import os
+import sys
+import logging
 import discord
 from discord.ext import commands
 from discord import app_commands
@@ -6,6 +9,17 @@ import threading
 import time
 import config
 import utils
+
+# Redirected stdout/stderr on Windows defaults to cp1252, which cannot encode the
+# box-drawing chars used in log banners — a UnicodeEncodeError inside on_ready
+# would abort startup silently. Force UTF-8 so the bot runs under any launcher.
+if hasattr(sys.stdout, "reconfigure"):
+    sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    sys.stderr.reconfigure(encoding="utf-8", errors="replace")
+
+# Surface discord.py's own logs (gateway connect/identify/errors) so startup
+# problems are visible instead of silent retries.
+logging.basicConfig(level=logging.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
 # ── Settings cache (avoid reading JSON/HTTP on every message) ──────
 _settings_cache = {}
@@ -176,11 +190,34 @@ def start_dashboard():
 
 
 # ── Main ───────────────────────────────────────────────────────────
+def dashboard_only() -> bool:
+    """Should this instance run the dashboard without the Discord bot?
+
+    The dashboard needs only the bot *token* for REST calls (guild list, roles),
+    never a gateway session, so a botless instance serves every page fine.
+    The Discord bot must run in exactly one place or every command fires in
+    every instance (double replies), so Render's public instance — which Render
+    injects RENDER / IS_RENDER / RENDER_INSTANCE_ID / RENDER_SERVICE_ID for —
+    defaults to dashboard-only unless RUN_BOT_ON_RENDER=1 forces the bot.
+    The manual DASHBOARD_ONLY=1 flag keeps working for non-Render hosts.
+    """
+    if os.environ.get("DASHBOARD_ONLY") == "1":
+        return True
+    if os.environ.get("RUN_BOT_ON_RENDER") == "1":
+        return False
+    return any(os.environ.get(k) for k in ("RENDER", "IS_RENDER", "RENDER_INSTANCE_ID", "RENDER_SERVICE_ID"))
+
+
 async def main():
     dashboard_thread = threading.Thread(target=start_dashboard, daemon=True)
     dashboard_thread.start()
     port = config.dashboard_port()
     print(f"  Dashboard: http://localhost:{port}")
+
+    if dashboard_only():
+        print("  Dashboard-only mode — Discord bot disabled (run the bot elsewhere).")
+        while True:
+            await asyncio.sleep(3600)
 
     async with bot:
         for cog in COGS:

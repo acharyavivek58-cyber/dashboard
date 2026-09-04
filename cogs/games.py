@@ -127,6 +127,133 @@ class Games(commands.Cog):
         roll_str = ", ".join(str(r) for r in rolls)
         embed = success("🎲 Dice Roll", f"**{dice}d{sides}:** {roll_str}\n**Total:** {total}")
         await ctx.send(embed=embed)
+    # Truth or Dare — reference-style: categorized prompts, Truth/Dare/Random buttons,
+    # "Requested by" footer, keeps playing round after round on one message.
+    @commands.hybrid_command(name="truthordare", aliases=["tod"], description="Truth or Dare — pick a poison!")
+    @app_commands.describe(target="Who's it for? (optional)")
+    async def truthordare(self, ctx: commands.Context, target: discord.Member = None):
+        truths = {
+            "Friendship": [
+                "Have you ever shared a friend's secret with someone else?",
+                "What's the nicest thing a friend has ever done for you?",
+                "Who in this server would you swap lives with for a day?",
+                "What's something you've never told your best friend?",
+                "Have you ever ended a friendship over something small?",
+                "What's the pettiest thing you've ever done to a friend?",
+            ],
+            "Confessions": [
+                "What's the last lie you told?",
+                "What's a secret you've never told anyone in this server?",
+                "What's the biggest lie you've told to get out of trouble?",
+                "Have you ever snooped through someone's phone?",
+                "What's something you've done that your parents still don't know about?",
+                "What's something you do when you're alone that you'd never do publicly?",
+            ],
+            "Embarrassing": [
+                "What's the most embarrassing thing you've done in public?",
+                "What's the worst haircut you've ever had?",
+                "What was your most embarrassing crush?",
+                "What's the most embarrassing thing in your search history?",
+                "What's the most awkward message you've ever sent?",
+                "What's your most embarrassing moment from school or work?",
+            ],
+            "Love & Dating": [
+                "Who's your celebrity crush?",
+                "What's the worst date you've ever been on?",
+                "Have you ever sent a text to the wrong person? What happened?",
+                "Have you ever had a crush on a friend?",
+                "What's the most romantic thing you've ever done?",
+                "What's the cringiest thing you've ever posted online?",
+            ],
+            "Life": [
+                "What's your most controversial opinion?",
+                "What's the biggest risk you've ever taken?",
+                "What's the most money you've wasted on something useless?",
+                "What's the strangest dream you remember?",
+                "What's an irrational fear you have?",
+                "What's the most childish thing you still do?",
+            ],
+        }
+        dares = {
+            "Social": [
+                "Send a compliment to every person who messaged in the last 10 minutes.",
+                "Let the server pick your nickname for 1 hour.",
+                "Send 'I love this server more than life itself' in the chat.",
+                "Make your status say 'currently losing at Truth or Dare' for 1 hour.",
+                "Praise the last person who sent a message here.",
+                "Send your most-used sticker or emoji.",
+            ],
+            "Embarrassing": [
+                "Send your current camera roll's last photo.",
+                "Send a voice message singing your favorite song's chorus.",
+                "Describe your morning routine in the most dramatic way possible.",
+                "Do an impression of someone in this server until they guess who it is.",
+                "Send the worst joke you know.",
+                "Act out your favorite emoji using only text.",
+            ],
+            "Fun": [
+                "Send a message using only emojis to describe your last meal.",
+                "Talk like a pirate for your next 5 messages.",
+                "Speak in lowercase and no punctuation for the next 10 messages.",
+                "Make a haiku about the last message sent in this channel.",
+                "Recite the alphabet backwards in chat.",
+                "Type with your elbows for the next 3 messages.",
+            ],
+            "Challenge": [
+                "Do 10 pushups right now and tell us when you're done.",
+                "Send a selfie-style description of your current outfit.",
+                "Share your screen for 30 seconds (if you can).",
+                "Reveal your phone's battery percentage right now.",
+                "Send the first result when you Google your own username.",
+                "Turn your phone brightness to max and stare at it for 10 seconds.",
+            ],
+        }
+        player = ctx.author
+        subject = target if (target and not target.bot and target.id != player.id) else player
+
+        def footer():
+            return {"text": f"Requested by {player.display_name}", "icon_url": player.display_avatar.url}
+
+        class TordView(discord.ui.View):
+            def __init__(self):
+                super().__init__(timeout=600)
+
+            async def _reveal(self, interaction: discord.Interaction, kind: str):
+                if kind == "random":
+                    kind = random.choice(("truth", "dare"))
+                if kind == "truth":
+                    cat = random.choice(list(truths))
+                    prompt = random.choice(truths[cat])
+                    embed = discord.Embed(title=f"💙 Truth — {cat} 💕", description=f"*{prompt}*", color=0x00B0F4)
+                else:
+                    cat = random.choice(list(dares))
+                    prompt = random.choice(dares[cat])
+                    embed = discord.Embed(title=f"💖 Dare — {cat} 😈", description=f"*{prompt}*", color=0xEB459E)
+                if subject != player:
+                    embed.description += f"\n\n🎯 {subject.mention} — your turn!"
+                embed.set_footer(**footer())
+                await interaction.response.edit_message(embed=embed, view=self)
+
+            @discord.ui.button(label="Truth", style=discord.ButtonStyle.primary, emoji="💙")
+            async def b_truth(self, interaction: discord.Interaction, button: discord.ui.Button):
+                await self._reveal(interaction, "truth")
+
+            @discord.ui.button(label="Dare", style=discord.ButtonStyle.danger, emoji="💖")
+            async def b_dare(self, interaction: discord.Interaction, button: discord.ui.Button):
+                await self._reveal(interaction, "dare")
+
+            @discord.ui.button(label="Random", style=discord.ButtonStyle.secondary, emoji="🎲")
+            async def b_random(self, interaction: discord.Interaction, button: discord.ui.Button):
+                await self._reveal(interaction, "random")
+
+        view = TordView()
+        intro = discord.Embed(
+            title="🎯 Truth or Dare",
+            description=f"{'🎯 ' + subject.mention + ' — ' if subject != player else ''}pick your poison:",
+            color=0x2F3136,
+        )
+        intro.set_footer(**footer())
+        await ctx.send(embed=intro, view=view)
     # Rock Paper Scissors (Fizbo-style interactive)
     @commands.hybrid_command(name="rps", description="Interactive RPS \u2014 join, pick, battle!")
     async def rps(self, ctx: commands.Context):

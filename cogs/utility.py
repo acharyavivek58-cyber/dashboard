@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 from discord import app_commands
 import datetime
+import aiohttp
 import config
 from utils import success, error, info, member_embed, server_embed
 
@@ -86,6 +87,65 @@ class Utility(commands.Cog):
     async def user_id(self, ctx: commands.Context, member: discord.Member = None):
         member = member or ctx.author
         await ctx.send(embed=success("ID", f"**{member}** → `{member.id}`"))
+
+    # ── ChatGPT ──────────────────────────────────────────────────────────
+    @commands.hybrid_command(name="ask", description="Ask ChatGPT anything")
+    @commands.cooldown(1, 10, commands.BucketType.user)
+    @app_commands.describe(question="Your question for the AI")
+    async def ask(self, ctx: commands.Context, *, question: str):
+        async with ctx.typing():
+            try:
+                answer = await self._ask_ai(question)
+            except Exception as e:
+                return await ctx.send(embed=error("🤖 AI Error", f"Couldn't reach the AI right now.\n```{e}```"))
+        if not answer:
+            return await ctx.send(embed=error("🤖 AI Error", "The AI returned an empty response — try rephrasing."))
+        chunks = [answer[i:i + 3900] for i in range(0, len(answer), 3900)]
+        await ctx.send(embed=success("🤖 ChatGPT", chunks[0]))
+        for chunk in chunks[1:]:
+            await ctx.send(chunk[:2000])
+
+    async def _ask_ai(self, prompt: str) -> str:
+        """Answer via local Ollama (free, no key) or the OpenAI API if a key is set."""
+        timeout = aiohttp.ClientTimeout(total=120)
+        # 1. Local Ollama — free, runs on this machine.
+        try:
+            payload = {
+                "model": "llama3.2",
+                "messages": [
+                    {"role": "system", "content": "You are a friendly Discord assistant. Keep answers clear, concise and well-formatted."},
+                    {"role": "user", "content": prompt},
+                ],
+                "stream": False,
+                "options": {"temperature": 0.7, "num_predict": 500},
+            }
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post("http://localhost:11434/api/chat", json=payload) as resp:
+                    if resp.status == 200:
+                        data = await resp.json()
+                        answer = data.get("message", {}).get("content", "").strip()
+                        if answer:
+                            return answer
+        except Exception:
+            pass  # Ollama not running — fall through to OpenAI.
+        # 2. OpenAI API — needs a key with credits.
+        if config.OPENAI_API_KEY:
+            payload = {
+                "model": "gpt-4o-mini",
+                "messages": [
+                    {"role": "system", "content": "You are a friendly Discord assistant. Keep answers clear, concise and well-formatted."},
+                    {"role": "user", "content": prompt},
+                ],
+                "max_tokens": 800,
+            }
+            headers = {"Authorization": f"Bearer {config.OPENAI_API_KEY}", "Content-Type": "application/json"}
+            async with aiohttp.ClientSession(timeout=timeout) as session:
+                async with session.post("https://api.openai.com/v1/chat/completions", json=payload, headers=headers) as resp:
+                    data = await resp.json()
+                    if resp.status != 200:
+                        raise RuntimeError(data.get("error", {}).get("message", f"HTTP {resp.status}"))
+                    return data["choices"][0]["message"]["content"].strip()
+        raise RuntimeError("No AI backend available — start Ollama (free, local) or add OpenAI credits.")
 
 
 async def setup(bot: commands.Bot):

@@ -15,6 +15,7 @@ DISCORD_CLIENT_SECRET = os.getenv("DISCORD_CLIENT_SECRET", "")
 # request origin so local runs round-trip to whatever port is served.
 DISCORD_REDIRECT_URI = os.getenv("DISCORD_REDIRECT_URI", "")
 DISCORD_BOT_TOKEN = os.getenv("BOT_TOKEN", "")
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
 
 
 def dashboard_port():
@@ -102,6 +103,7 @@ DEFAULT_SETTINGS = {
         "hotxo": {"roles": [], "everyone": True},
         "deathwheel": {"roles": [], "everyone": True},
         "chairs": {"roles": [], "everyone": True},
+        "truthordare": {"roles": [], "everyone": True},
         "hideandseek": {"roles": [], "everyone": True},
         "replica": {"roles": [], "everyone": True},
         "guesscountry": {"roles": [], "everyone": True},
@@ -111,6 +113,7 @@ DEFAULT_SETTINGS = {
         "fasttype": {"roles": [], "everyone": True},
         "textsplit": {"roles": [], "everyone": True},
         "textmerge": {"roles": [], "everyone": True},
+        "ask": {"roles": [], "everyone": True},
         "flag": {"roles": [], "everyone": True},
         "textreverse": {"roles": [], "everyone": True},
         "findletter": {"roles": [], "everyone": True},
