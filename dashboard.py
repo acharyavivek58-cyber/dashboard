@@ -173,12 +173,6 @@ def dashboard():
     return render_template("dashboard.html", guilds=guilds, user=session.get("user"))
 
 
-@app.route("/showcase")
-@login_required
-def showcase():
-    return render_template("showcase.html", user=session.get("user"))
-
-
 @app.route("/dashboard/<guild_id>")
 @admin_required
 def guild_settings(guild_id):
