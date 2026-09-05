@@ -1,0 +1,8 @@
+# IDE / editor noise only — no Roblox artifacts on this machine.
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+.idea/
+.vscode/
