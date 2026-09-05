@@ -3,57 +3,65 @@
 {% block meta_description %}Sign in with Discord to manage your server — moderation, permissions, commands, games, tickets and music from one control deck.{% endblock %}
 {% block fullpage %}
 <div class="login-page">
-    <div class="cube-scene" id="cube-scene">
-        <div class="cube-glow"></div>
-        <div class="cube-wrap">
-            <div class="cube">
-                <span class="face f1">A</span>
-                <span class="face f2"></span>
-                <span class="face f3"></span>
-                <span class="face f4"></span>
-                <span class="face f5"></span>
-                <span class="face f6"></span>
+    <div class="login-hero">
+        <div class="hero-scene" id="cube-scene">
+            <div class="hero-glow"></div>
+            <div class="cube-wrap">
+                <div class="cube">
+                    <span class="face f1">A</span>
+                    <span class="face f2"></span>
+                    <span class="face f3"></span>
+                    <span class="face f4"></span>
+                    <span class="face f5"></span>
+                    <span class="face f6"></span>
+                </div>
             </div>
         </div>
-    </div>
 
-    <div class="login-content">
-        <div class="rv">
-            <span class="eyebrow">Server Control Deck</span>
-            <h1 class="login-title">Full command of<br><span class="grad">your server.</span></h1>
-            <p class="login-sub">
-                One control deck for moderation, permissions, games, tickets, music
-                and more — built for Aravix.
-            </p>
-            <a href="/login" class="btn-discord">
-                <svg class="discord-mark" width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="flex-shrink:0;">
-                    <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z"/>
-                </svg>
-                Login with Discord
-            </a>
-            <p class="login-hint">You'll be redirected to Discord to authorize access.</p>
+        <div class="login-band">
+            <span class="lb-edge"></span>
+            <span class="lb-edge opp"></span>
+            <span class="lb-line"></span>
         </div>
 
-        <!-- Spatial UI · Stack (React Bits port) — drag / click the front card to rotate it -->
-        <div class="login-stack rv" style="--d:.15s">
-            <div class="stack-zone" id="login-stack" role="group" aria-label="Feature modules — drag or click the front card">
-                <button type="button" class="st-card mod" aria-label="Moderation module">
-                    <span class="st-ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span>
-                    <span class="st-body"><b>Moderation</b><small>warn · mute · lock · purge</small></span>
-                    <span class="st-arr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></span>
-                </button>
-                <button type="button" class="st-card gm" aria-label="Games and Fun module">
-                    <span class="st-ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9.5h.01M15 9.5h.01"/></svg></span>
-                    <span class="st-body"><b>Games &amp; Fun</b><small>trivia · roulette · meme · 8ball</small></span>
-                    <span class="st-arr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></span>
-                </button>
-                <button type="button" class="st-card tk" aria-label="Tickets and Music module">
-                    <span class="st-ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
-                    <span class="st-body"><b>Tickets &amp; Music</b><small>support channels · voice playback</small></span>
-                    <span class="st-arr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></span>
-                </button>
+        <div class="login-content">
+            <div class="rv">
+                <span class="eyebrow">Server Control Deck</span>
+                <h1 class="login-title">Full command of<br><span class="grad">your server.</span></h1>
+                <p class="login-sub">
+                    One control deck for moderation, permissions, games, tickets, music
+                    and more — built for Aravix.
+                </p>
+                <a href="/login" class="btn-discord">
+                    <svg class="discord-mark" width="21" height="21" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true" style="flex-shrink:0;">
+                        <path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286z"/>
+                    </svg>
+                    Login with Discord
+                </a>
+                <p class="login-hint">You'll be redirected to Discord to authorize access.</p>
             </div>
-            <span class="stack-hint">drag or click the front card — it rotates back in</span>
+
+            <!-- Spatial UI · Stack (React Bits port) — drag / click the front card to rotate it -->
+            <div class="login-stack rv" style="--d:.15s">
+                <div class="stack-zone" id="login-stack" role="group" aria-label="Feature modules — drag or click the front card">
+                    <button type="button" class="st-card mod" aria-label="Moderation module">
+                        <span class="st-ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-3.5 8-10V5l-8-3-8 3v7c0 6.5 8 10 8 10z"/><path d="M9 12l2 2 4-4"/></svg></span>
+                        <span class="st-body"><b>Moderation</b><small>warn · mute · lock · purge</small></span>
+                        <span class="st-arr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></span>
+                    </button>
+                    <button type="button" class="st-card gm" aria-label="Games and Fun module">
+                        <span class="st-ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><path d="M9 9.5h.01M15 9.5h.01"/></svg></span>
+                        <span class="st-body"><b>Games &amp; Fun</b><small>trivia · roulette · meme · 8ball</small></span>
+                        <span class="st-arr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></span>
+                    </button>
+                    <button type="button" class="st-card tk" aria-label="Tickets and Music module">
+                        <span class="st-ico"><svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V5l12-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="18" cy="16" r="3"/></svg></span>
+                        <span class="st-body"><b>Tickets &amp; Music</b><small>support channels · voice playback</small></span>
+                        <span class="st-arr"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-3-6.7"/><path d="M21 3v6h-6"/></svg></span>
+                    </button>
+                </div>
+                <span class="stack-hint">drag or click the front card — it rotates back in</span>
+            </div>
         </div>
     </div>
 

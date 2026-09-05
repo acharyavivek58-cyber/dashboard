@@ -115,6 +115,12 @@
                 </div>
             </header>
             <div class="content-area">
+                <div class="page-band">
+                    <div class="band-edge"></div>
+                    <div class="band-line"></div>
+                    <div class="band-edge opp"></div>
+                    {% block page_band %}{% endblock %}
+                </div>
                 {% block content %}{% endblock %}
             </div>
         </main>
