@@ -1,8 +1,0 @@
-Create a RemoteEvent named "ObbyRemote" in ReplicatedStorage.
-
-This is the only client->server signal in the starter. The client uses it for:
-- "continue"  (Restart button / Continue button)
-- "restart"   (Restart button)
-
-The server never trusts the client's stage state. Progression still happens on a
-server-checked Finish touch. See ServerScriptService/ObbyServer.lua for how it is used.
