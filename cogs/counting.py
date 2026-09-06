@@ -102,14 +102,13 @@ class Counting(commands.Cog):
                     await message.add_reaction("\u274c")
                 except discord.errors.Forbidden:
                     pass
+                # Never reset the count — just warn that they cannot double count.
                 e = error(
                     "\u274c Double Count!",
                     f"**{message.author.mention}** counted twice in a row!\n"
-                    f"The count has been reset to **0**."
+                    f"You can't count twice in a row — the count stays at **{state['count']}**. "
+                    f"Next number: **{expected}**."
                 )
-                state["count"] = 0
-                state["last_user"] = None
-                self._save()
                 try:
                     await message.channel.send(embed=e, delete_after=8)
                 except discord.errors.Forbidden:
@@ -127,17 +126,21 @@ class Counting(commands.Cog):
                     pass
             else:
                 print(f"[Counting] WRONG! {number} != {expected}")
-                state["count"] = 0
-                state["last_user"] = None
-                self._save()
+                # Never reset the count — delete the wrong number and warn instead.
+                if not is_privileged:
+                    try:
+                        await message.delete()
+                    except (discord.errors.NotFound, discord.errors.Forbidden):
+                        pass
                 try:
                     await message.add_reaction("\u274c")
                 except discord.errors.Forbidden:
                     pass
                 e = error(
-                    "\u274c Count Reset!",
-                    f"**{message.author.mention}** said `{number}` but it was `{expected}`.\n"
-                    f"The count has been reset to **0**."
+                    "\u274c Wrong Number!",
+                    f"**{message.author.mention}** said `{number}` but it should be `{expected}`.\n"
+                    f"The count is NOT reset — it stays at **{state['count']}**. "
+                    f"Next number: **{expected}**."
                 )
                 try:
                     await message.channel.send(embed=e, delete_after=8)

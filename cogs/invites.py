@@ -147,5 +147,36 @@ class InviteTracker(commands.Cog):
         await ctx.send(embed=e)
 
 
+    # ── Admin: claimed / reset-all ─────────────────────────────────
+
+    @commands.hybrid_command(name="claimed", description="Reset one member's invite counters to zero (admin)")
+    @app_commands.describe(member="Member whose invite counters get reset")
+    async def claimed(self, ctx: commands.Context, member: discord.Member):
+        """Reset a single member's invite counters to zero."""
+        guild_data = self._get_guild_data(ctx.guild.id)
+        members = guild_data.setdefault("members", {})
+        members[str(member.id)] = {"total": 0, "joins": 0, "leaves": 0, "fake": 0}
+        self._save()
+        e = discord.Embed(title="\u2705 Invites Claimed", color=0x57F287)
+        e.description = f"**{member.mention}**'s invite counters have been reset to **0**."
+        e.set_footer(text=f"Reset by {ctx.author.display_name}")
+        await ctx.send(embed=e)
+
+    @commands.hybrid_command(name="resetinvites", description="Reset every member's invite counters in this server (admin)")
+    async def resetinvites(self, ctx: commands.Context):
+        """Reset all members' invite counters to zero, keeping the invite snapshot intact."""
+        guild_data = self._get_guild_data(ctx.guild.id)
+        members = guild_data.setdefault("members", {})
+        count = len(members)
+        for data in members.values():
+            data.update({"total": 0, "joins": 0, "leaves": 0, "fake": 0})
+        self._save()
+        e = discord.Embed(title="\u267b\ufe0f Invites Reset", color=0x57F287)
+        e.description = f"Invite counters for **{count}** member(s) have been reset to **0**.\n" \
+                        f"Tracking continues from here — the invite snapshot was left intact."
+        e.set_footer(text=f"Reset by {ctx.author.display_name}")
+        await ctx.send(embed=e)
+
+
 async def setup(bot: commands.Bot):
     await bot.add_cog(InviteTracker(bot))

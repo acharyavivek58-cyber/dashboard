@@ -89,6 +89,8 @@ DEFAULT_SETTINGS = {
         "invites": {"roles": [], "everyone": True},
         "inviteboard": {"roles": [], "everyone": True},
         "invitestats": {"roles": [], "everyone": True},
+        "claimed": {"roles": [], "everyone": False},
+        "resetinvites": {"roles": [], "everyone": False},
         "giveaway": {"roles": [], "everyone": False},
         "giveawayend": {"roles": [], "everyone": False},
         "giveawayreroll": {"roles": [], "everyone": False},
@@ -252,7 +254,7 @@ def save_state(filename: str, data: dict):
 # configured on the dashboard (mirrors the dashboard's Co-Owner+ tier:
 # ban/kick + lock family). Every other restricted command falls back to
 # the wider mod trio (Manage Server / Manage Messages / Mute Members).
-_ADMIN_FALLBACK_COMMANDS = {"ban", "kick", "lock", "unlock", "slowmode"}
+_ADMIN_FALLBACK_COMMANDS = {"ban", "kick", "lock", "unlock", "slowmode", "claimed", "resetinvites"}
 
 
 def has_permission(command_name: str, member) -> bool:
