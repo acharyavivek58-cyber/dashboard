@@ -1,3 +1,2 @@
-env: python
-buildCommand: pip install -r requirements.txt
-startCommand: python main.py
+# Render Blueprint — Docker runtime so the image can install ffmpeg for $play.
+runtime: docker
