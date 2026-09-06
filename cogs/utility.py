@@ -101,23 +101,30 @@ class Utility(commands.Cog):
         if not answer:
             return await ctx.send(embed=error("🤖 AI Error", "The AI returned an empty response — try rephrasing."))
         chunks = [answer[i:i + 3900] for i in range(0, len(answer), 3900)]
-        await ctx.send(embed=success("🤖 ChatGPT", chunks[0]))
-        for chunk in chunks[1:]:
-            await ctx.send(chunk[:2000])
+        for i, chunk in enumerate(chunks):
+            embed = success("🤖 AI Answer", chunk)
+            if i == 0:
+                embed.add_field(name="Your question", value=f"*{question}*"[:1000], inline=False)
+                embed.set_footer(text=f"Requested by {ctx.author.display_name}",
+                                 icon_url=ctx.author.display_avatar.url)
+                embed.timestamp = datetime.datetime.now(datetime.timezone.utc)
+            await ctx.send(embed=embed)
 
     async def _ask_ai(self, prompt: str) -> str:
         """Answer via local Ollama (free, no key) or the OpenAI API if a key is set."""
         timeout = aiohttp.ClientTimeout(total=120)
-        # 1. Local Ollama — free, runs on this machine.
+        # 1. Local Ollama — free, runs on this machine. keep_alive keeps the
+        # model warm so requests don't pay a cold-load penalty every time.
         try:
             payload = {
                 "model": "llama3.2",
                 "messages": [
-                    {"role": "system", "content": "You are a friendly Discord assistant. Keep answers clear, concise and well-formatted."},
+                    {"role": "system", "content": "You are a friendly Discord assistant. Answer in 1-3 short sentences unless the user asks for more detail."},
                     {"role": "user", "content": prompt},
                 ],
                 "stream": False,
-                "options": {"temperature": 0.7, "num_predict": 500},
+                "keep_alive": "10m",
+                "options": {"temperature": 0.7, "num_predict": 200},
             }
             async with aiohttp.ClientSession(timeout=timeout) as session:
                 async with session.post("http://localhost:11434/api/chat", json=payload) as resp:

@@ -1,0 +1,150 @@
+{% extends "base.html" %}
+{% block title %}{{ guild.name }} · AutoMod{% endblock %}
+{% block meta_description %}Auto-moderation settings for {{ guild.name }} — profanity, invites, caps, mentions, spam and exempt channels.{% endblock %}
+{% block page_title %}AutoMod{% endblock %}
+{% block content %}
+{% set am = settings.automod or {} %}
+<div class="settings-grid">
+    <!-- Profanity -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>Profanity Filter</h3>
+            <label class="toggle">
+                <input type="checkbox" id="profanity_filter" {{ "checked" if am.profanity_filter is not sameas false }} onchange="saveToggle('profanity_filter', this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Warns on cussing, mutes for 2 minutes on the second offense.</p>
+        </div>
+    </div>
+
+    <!-- Invite links -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>Invite Link Filter</h3>
+            <label class="toggle">
+                <input type="checkbox" id="invite_links" {{ "checked" if am.invite_links is not sameas false }} onchange="saveToggle('invite_links', this.checked)">
+                <span class="toggle-slider"></span>
+            </label>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Deletes messages containing discord.gg / discord.com/invite links.</p>
+        </div>
+    </div>
+
+    <!-- Caps -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>All-Caps Filter</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Removes messages that are mostly caps past a minimum length.</p>
+            <div class="form-group">
+                <label>Caps percentage (%)</label>
+                <input type="number" id="max_caps_percent" value="{{ am.max_caps_percent or 70 }}" class="input-field" min="1" max="100">
+            </div>
+            <div class="form-group">
+                <label>Minimum message length</label>
+                <input type="number" id="caps_min_length" value="{{ am.caps_min_length or 200 }}" class="input-field" min="1">
+            </div>
+            <button onclick="saveNumbers()" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+
+    <!-- Mentions -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>Mention Limit</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Max mentions per message before it gets removed.</p>
+            <div class="form-group">
+                <label>Max mentions</label>
+                <input type="number" id="max_mentions" value="{{ am.max_mentions or 5 }}" class="input-field" min="1" max="50">
+            </div>
+            <button onclick="saveNumbers()" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+
+    <!-- Spam -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>Spam Protection</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Message flood detection — 3 auto-warns = 10 minute timeout.</p>
+            <div class="form-group">
+                <label>Window (seconds)</label>
+                <input type="number" id="spam_window" value="{{ am.spam_window or 5 }}" class="input-field" min="1">
+            </div>
+            <div class="form-group">
+                <label>Max messages in window</label>
+                <input type="number" id="max_spam" value="{{ am.max_spam or 5 }}" class="input-field" min="2">
+            </div>
+            <button onclick="saveNumbers()" class="btn btn-primary">Save</button>
+        </div>
+    </div>
+
+    <!-- Exempt channels -->
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>Exempt Channels</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Channel IDs where AutoMod stays silent (comma separated). The counting channel is exempt by default.</p>
+            <div class="form-group">
+                <label>Channel IDs</label>
+                <input type="text" id="exempt_channels" value="{{ am.exempt_channels | join(', ') }}" class="input-field" placeholder="1543631917855805441, 123456789">
+            </div>
+            <button onclick="saveExempt()" class="btn btn-primary">Save</button>
+            <span id="automod-status" class="save-status"></span>
+        </div>
+    </div>
+</div>
+
+<script>
+const GUILD_ID = "{{ guild.id }}";
+
+async function api(body) {
+    const res = await fetch(`/api/automod/${GUILD_ID}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+    });
+    return res.json();
+}
+
+function flash(msg) {
+    const el = document.getElementById("automod-status");
+    if (!el) return;
+    el.textContent = msg;
+    el.classList.add("show");
+    setTimeout(() => el.classList.remove("show"), 2500);
+}
+
+async function saveToggle(key, checked) {
+    await api({ [key]: checked });
+    flash("✅ Saved!");
+}
+
+async function saveNumbers() {
+    const data = {
+        max_caps_percent: parseInt(document.getElementById("max_caps_percent").value, 10) || 70,
+        caps_min_length: parseInt(document.getElementById("caps_min_length").value, 10) || 200,
+        max_mentions: parseInt(document.getElementById("max_mentions").value, 10) || 5,
+        spam_window: parseInt(document.getElementById("spam_window").value, 10) || 5,
+        max_spam: parseInt(document.getElementById("max_spam").value, 10) || 5,
+    };
+    await api(data);
+    flash("✅ Saved!");
+}
+
+async function saveExempt() {
+    const raw = document.getElementById("exempt_channels").value;
+    const ids = raw.split(",").map(s => s.trim()).filter(Boolean);
+    await api({ exempt_channels: ids });
+    flash("✅ Saved!");
+}
+</script>
+{% endblock %}

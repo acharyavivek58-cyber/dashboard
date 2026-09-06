@@ -87,6 +87,17 @@ class AutoMod(commands.Cog):
 
     EXEMPT_CHANNELS = [1543631917855805441]  # counting channel
 
+    def _guild_config(self, guild_id: int) -> dict:
+        """Per-guild automod settings (dashboard-driven), falling back to defaults."""
+        cfg = dict(self.AUTO_MOD_CONFIG)
+        settings = config.get_guild_settings(str(guild_id))
+        saved = settings.get("automod") or {}
+        cfg.update(saved)
+        # Never allow an empty/no exempt list to drop the counting channel silently.
+        if not cfg.get("exempt_channels"):
+            cfg["exempt_channels"] = list(self.EXEMPT_CHANNELS)
+        return cfg
+
     def _is_cuss(self, text: str) -> bool:
         """Check if message contains profanity using strict word boundaries."""
         # Direct whole-word match
@@ -107,21 +118,21 @@ class AutoMod(commands.Cog):
         ]
         return any(re.search(p, text.lower()) for p in patterns)
 
-    def _is_caps(self, text: str) -> bool:
-        if len(text) < self.AUTO_MOD_CONFIG["caps_min_length"]:
+    def _is_caps(self, text: str, cfg: dict) -> bool:
+        if len(text) < cfg["caps_min_length"]:
             return False
         letters = [c for c in text if c.isalpha()]
         if not letters:
             return False
         caps = sum(1 for c in letters if c.isupper())
-        return (caps / len(letters) * 100) > self.AUTO_MOD_CONFIG["max_caps_percent"]
+        return (caps / len(letters) * 100) > cfg["max_caps_percent"]
 
-    def _is_spam(self, user_id: int) -> bool:
+    def _is_spam(self, user_id: int, cfg: dict) -> bool:
         now = time.time()
-        window = self.AUTO_MOD_CONFIG["spam_window"]
+        window = cfg["spam_window"]
         self.spam_tracker[user_id] = [t for t in self.spam_tracker[user_id] if now - t < window]
         self.spam_tracker[user_id].append(now)
-        return len(self.spam_tracker[user_id]) > self.AUTO_MOD_CONFIG["max_spam"]
+        return len(self.spam_tracker[user_id]) > cfg["max_spam"]
 
     @commands.Cog.listener()
     async def on_message(self, message: discord.Message):
@@ -132,7 +143,8 @@ class AutoMod(commands.Cog):
         if message.content and message.content[0] in ['$', '!', '/', '?']:
             return
 
-        if message.channel.id in self.EXEMPT_CHANNELS:
+        cfg = self._guild_config(message.guild.id)
+        if message.channel.id in cfg.get("exempt_channels", self.EXEMPT_CHANNELS):
             return
 
         if message.author.guild_permissions.administrator:
@@ -142,19 +154,19 @@ class AutoMod(commands.Cog):
         reasons = []
 
         # Check profanity
-        if self.AUTO_MOD_CONFIG["profanity_filter"] and self._is_cuss(content):
+        if cfg.get("profanity_filter", True) and self._is_cuss(content):
             reasons.append("profanity")
 
-        if self.AUTO_MOD_CONFIG["invite_links"] and self._is_invite(content):
+        if cfg.get("invite_links", True) and self._is_invite(content):
             reasons.append("invite link")
 
-        if self._is_caps(content):
+        if self._is_caps(content, cfg):
             reasons.append("excessive caps")
 
-        if len(message.mentions) > self.AUTO_MOD_CONFIG["max_mentions"]:
+        if len(message.mentions) > cfg["max_mentions"]:
             reasons.append("mass mentions")
 
-        if self._is_spam(message.author.id):
+        if self._is_spam(message.author.id, cfg):
             reasons.append("spam")
 
         if not reasons:
@@ -234,28 +246,35 @@ class AutoMod(commands.Cog):
     @commands.has_permissions(administrator=True)
     @app_commands.describe(setting="Setting to toggle", value="true/false")
     async def automod(self, ctx: commands.Context, setting: str, value: str = None):
-        valid = list(self.AUTO_MOD_CONFIG.keys())
+        settings = config.get_guild_settings(str(ctx.guild.id))
+        current = dict(self.AUTO_MOD_CONFIG)
+        current.update(settings.get("automod") or {})
+        valid = list(current.keys())
         if setting not in valid:
             return await ctx.send(embed=error("Error", f"Valid settings: `{'`, `'.join(valid)}`"))
 
         if value is None:
-            current = self.AUTO_MOD_CONFIG[setting]
-            return await ctx.send(embed=info("AutoMod", f"**{setting}** = `{current}`"))
+            return await ctx.send(embed=info("AutoMod", f"**{setting}** = `{current[setting]}`"))
 
-        if isinstance(self.AUTO_MOD_CONFIG[setting], bool):
-            self.AUTO_MOD_CONFIG[setting] = value.lower() in ("true", "1", "on", "yes")
-        elif isinstance(self.AUTO_MOD_CONFIG[setting], int):
+        if isinstance(current[setting], bool):
+            current[setting] = value.lower() in ("true", "1", "on", "yes")
+        elif isinstance(current[setting], int):
             try:
-                self.AUTO_MOD_CONFIG[setting] = int(value)
+                current[setting] = int(value)
             except ValueError:
                 return await ctx.send(embed=error("Error", "Must be a number."))
 
-        await ctx.send(embed=success("✅ Updated", f"**{setting}** = `{self.AUTO_MOD_CONFIG[setting]}`"))
+        settings["automod"] = current
+        config.set_guild_settings(str(ctx.guild.id), settings)
+        await ctx.send(embed=success("✅ Updated", f"**{setting}** = `{current[setting]}`"))
 
     @commands.hybrid_command(name="automodconfig", description="View automod settings")
     async def automodconfig(self, ctx: commands.Context):
+        settings = config.get_guild_settings(str(ctx.guild.id))
+        current = dict(self.AUTO_MOD_CONFIG)
+        current.update(settings.get("automod") or {})
         lines = []
-        for k, v in self.AUTO_MOD_CONFIG.items():
+        for k, v in current.items():
             emoji = "✅" if v else "❌" if isinstance(v, bool) else "🔢"
             lines.append(f"{emoji} **{k}**: `{v}`")
         await ctx.send(embed=info("AutoMod Config", "\n".join(lines)))

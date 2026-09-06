@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}{{ guild.name }} · Invites{% endblock %}
+{% block meta_description %}Invite leaderboard and tracking for {{ guild.name }}.{% endblock %}
+{% block page_title %}Invites{% endblock %}
+{% block content %}
+<div class="settings-grid">
+    <div class="settings-card full-width">
+        <div class="settings-card-header">
+            <h3>Invite Leaderboard</h3>
+        </div>
+        <div class="settings-card-body">
+            {% if leaderboard %}
+            <div class="counting-rules">
+                {% for row in leaderboard %}
+                <div class="rule">
+                    {% if row.avatar %}
+                    <img src="{{ row.avatar }}" alt="" class="user-avatar-sm" referrerpolicy="no-referrer">
+                    {% else %}
+                    <span class="rule-icon">{{ loop.index }}</span>
+                    {% endif %}
+                    <div style="flex:1">
+                        <strong>{{ row.name }}</strong>
+                        <p>ID: <code>{{ row.id }}</code></p>
+                    </div>
+                    <div style="text-align:right">
+                        <strong>{{ row.total }}</strong> invites
+                        <p>{{ row.joins }} joins · {{ row.leaves }} left · {{ row.fake }} fake</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="empty-state">
+                <p>No invite data yet. Invites are tracked automatically when new members join.</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>Commands</h3>
+        </div>
+        <div class="settings-card-body">
+            <div class="command-examples">
+                <div class="example"><code>$invites</code> — Your invite count</div>
+                <div class="example"><code>$inviteboard</code> — Leaderboard in chat</div>
+                <div class="example"><code>$invitestats</code> — Server totals</div>
+                <div class="example"><code>$claimed @user</code> — Reset one member's invites (admin)</div>
+                <div class="example"><code>$resetinvites</code> — Reset everyone's invites (admin)</div>
+            </div>
+        </div>
+    </div>
+
+    <div class="settings-card">
+        <div class="settings-card-header">
+            <h3>How it works</h3>
+        </div>
+        <div class="settings-card-body">
+            <p class="settings-desc">Joins are credited to the inviter whose invite code gained a use. Leaving is tracked separately so invites never go negative.</p>
+            <p class="settings-desc">Reset actions happen in Discord with <code>$claimed @user</code> or <code>$resetinvites</code> — this page reflects live data.</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

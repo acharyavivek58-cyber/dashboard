@@ -11,6 +11,18 @@
   /* Mark JS as available for entrance animations */
   document.documentElement.classList.add('js');
 
+  /* ── Login hero entrance sequence (non-blocking) ─────────────── */
+  const hero = document.querySelector('.login-hero');
+  if (hero) {
+    requestAnimationFrame(() => {
+      const show = () => {
+        if (hero) hero.classList.add('is-loaded');
+      };
+      // small stagger so the hero reads as a single composed moment
+      requestAnimationFrame(() => requestAnimationFrame(show));
+    });
+  }
+
   /* ── Scroll reveal ──────────────────────────────────────────── */
   const rvs = document.querySelectorAll('.rv');
   if (rvs.length && 'IntersectionObserver' in window && !reduced) {

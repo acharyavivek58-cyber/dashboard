@@ -166,7 +166,21 @@ DEFAULT_SETTINGS = {
         "reactionroleadd": {"roles": [], "everyone": False},
         "reactionroledel": {"roles": [], "everyone": False},
         "reactionroles": {"roles": [], "everyone": False},
-    }
+    },
+    # ── Per-guild module settings (dashboard-driven, same keys automod.py reads) ──
+    "afk_nickname": True,
+    "automod": {
+        "profanity_filter": True,
+        "invite_links": True,
+        "link_protection": False,
+        "max_caps_percent": 70,
+        "caps_min_length": 200,
+        "max_mentions": 5,
+        "spam_window": 5,
+        "max_spam": 5,
+        "exempt_channels": [1543631917855805441],  # counting channel
+    },
+    "invite_ping_role": "",
 }
 
 

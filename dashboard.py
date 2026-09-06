@@ -1,4 +1,5 @@
 import os
+import json
 import secrets
 import functools
 from urllib.parse import urlencode
@@ -231,7 +232,71 @@ def guild_counting(guild_id):
     return render_template("counting.html", guild=guild, settings=settings, user=session.get("user"))
 
 
+@app.route("/dashboard/<guild_id>/automod")
+@admin_required
+def guild_automod(guild_id):
+    guild = get_guild_info(guild_id)
+    if not guild:
+        return redirect(url_for("dashboard"))
+    settings = get_guild_settings(guild_id)
+    return render_template("automod.html", guild=guild, settings=settings, roles=get_guild_roles(guild_id), user=session.get("user"))
+
+
+@app.route("/dashboard/<guild_id>/invites")
+@admin_required
+def guild_invites(guild_id):
+    guild = get_guild_info(guild_id)
+    if not guild:
+        return redirect(url_for("dashboard"))
+    leaderboard = _invite_leaderboard(guild_id)
+    return render_template("invites.html", guild=guild, leaderboard=leaderboard, user=session.get("user"))
+
+
+# ── Invite data (Falcon-style leaderboard) ─────────────────────
+def _invite_data() -> dict:
+    """Read the invite tracker's data file (written by cogs/invites.py)."""
+    path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "invite_data.json")
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except (OSError, ValueError):
+        return {}
+
+
+def _invite_leaderboard(guild_id: str, limit: int = 15) -> list:
+    """Top inviters for a guild, with display names resolved via the bot token."""
+    guild_data = _invite_data().get(str(guild_id), {})
+    members = guild_data.get("members", {})
+    ranked = sorted(members.items(), key=lambda x: x[1].get("total", 0), reverse=True)[:limit]
+    rows = []
+    headers = {"Authorization": f"Bot {DISCORD_BOT_TOKEN}"}
+    for uid, data in ranked:
+        name = uid
+        avatar = None
+        resp = requests.get(f"https://discord.com/api/v10/guilds/{guild_id}/members/{uid}", headers=headers, timeout=10)
+        if resp.status_code == 200:
+            info = resp.json()
+            name = info.get("nick") or info.get("user", {}).get("username") or uid
+            av = info.get("user", {}).get("avatar")
+            if av:
+                avatar = f"https://cdn.discordapp.com/avatars/{uid}/{av}.png?size=64"
+        rows.append({"id": uid, "name": name, "avatar": avatar, **data})
+    return rows
+
+
 # ── API routes ─────────────────────────────────────────────────
+@app.route("/api/automod/<guild_id>", methods=["POST"])
+@admin_required
+def update_automod(guild_id):
+    data = request.json or {}
+    current = get_guild_settings(guild_id)
+    am = dict(current.get("automod") or {})
+    am.update(data)
+    current["automod"] = am
+    set_guild_settings(guild_id, current)
+    return jsonify({"success": True, "automod": am})
+
+
 @app.route("/api/settings/<guild_id>", methods=["GET"])
 @admin_required
 def get_settings(guild_id):

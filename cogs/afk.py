@@ -94,6 +94,32 @@ class AFK(commands.Cog):
         self.afk_users = {}       # {guild_id: {user_id: {"reason": str, "since": datetime}}}
         self.pending_messages = {} # {guild_id: {user_id: [{"from": user, "message": str}]}}
         self.notify_queue = {}     # {guild_id: {user_id: [requester_ids]}}
+        self._load_state()
+
+    # ── Persistence (AFK survives restarts) ──────────────────────────
+    def _load_state(self):
+        raw = config.load_state("afk_state.json")
+        for gid_s, users in raw.items():
+            gid = int(gid_s)
+            for uid_s, entry in users.items():
+                try:
+                    since = datetime.fromisoformat(entry.get("since"))
+                except (TypeError, ValueError):
+                    since = datetime.now(timezone.utc)
+                self.afk_users.setdefault(gid, {})[int(uid_s)] = {
+                    "reason": entry.get("reason", "AFK"),
+                    "since": since,
+                }
+
+    def _save_state(self):
+        data = {
+            str(gid): {
+                str(uid): {"reason": e["reason"], "since": e["since"].isoformat()}
+                for uid, e in users.items()
+            }
+            for gid, users in self.afk_users.items()
+        }
+        config.save_state("afk_state.json", data)
 
     async def cog_before_invoke(self, ctx: commands.Context):
         if ctx.author.id == ctx.guild.owner_id:
@@ -109,11 +135,17 @@ class AFK(commands.Cog):
             "reason": reason,
             "since": datetime.now(timezone.utc),
         }
+        self._save_state()
 
     def _remove_afk(self, guild_id, user_id):
+        removed = None
         if guild_id in self.afk_users:
-            return self.afk_users[guild_id].pop(user_id, None)
-        return None
+            removed = self.afk_users[guild_id].pop(user_id, None)
+            if not self.afk_users[guild_id]:
+                self.afk_users.pop(guild_id, None)
+        if removed:
+            self._save_state()
+        return removed
 
     def _get_afk(self, guild_id, user_id):
         return self.afk_users.get(guild_id, {}).get(user_id)
@@ -140,14 +172,16 @@ class AFK(commands.Cog):
 
         self._set_afk(guild_id, user_id, reason)
 
-        # Change nickname to [AFK] (name)
-        try:
-            original_name = ctx.author.display_name
-            if not original_name.startswith("[AFK]"):
-                new_nick = f"[AFK] {original_name}"
-                await ctx.author.edit(nick=new_nick[:32])
-        except discord.Forbidden:
-            pass
+        # Dyno-style nickname toggle (per-guild setting, default on)
+        settings = config.get_guild_settings(str(guild_id))
+        if settings.get("afk_nickname", True):
+            try:
+                original_name = ctx.author.display_name
+                if not original_name.startswith("[AFK]"):
+                    new_nick = f"[AFK] {original_name}"
+                    await ctx.author.edit(nick=new_nick[:32])
+            except discord.Forbidden:
+                pass
 
         # Simple one-line response (not a big embed)
         await ctx.send(
