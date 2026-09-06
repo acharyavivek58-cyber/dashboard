@@ -120,6 +120,12 @@ def index():
     return render_template("login.html")
 
 
+@app.route("/api/bot-status")
+def bot_status():
+    """Live bot gateway state (see config.bot_status) — public, no secrets."""
+    return {"status": config.bot_status, "token_set": bool(config.BOT_TOKEN)}
+
+
 @app.route("/login")
 def login():
     params = {

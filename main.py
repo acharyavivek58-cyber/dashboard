@@ -78,6 +78,7 @@ bot = commands.Bot(
 # ── Events ─────────────────────────────────────────────────────────
 @bot.event
 async def on_ready():
+    config.bot_status = "online"
     print("─" * 40)
     print(f"  Bot:    {bot.user} ({bot.user.id})")
     print(f"  Guilds: {len(bot.guilds)}")
@@ -224,10 +225,16 @@ async def main():
             print(f"  Loaded: {cog}")
 
         if not config.BOT_TOKEN:
+            config.bot_status = "no_token"
             print("ERROR: BOT_TOKEN not set. Copy .env.example to .env and add your token.")
             return
 
-        await bot.start(config.BOT_TOKEN)
+        try:
+            await bot.start(config.BOT_TOKEN)
+        except Exception as e:
+            config.bot_status = "error"
+            print(f"ERROR: bot failed to start: {e}")
+            raise
 
 
 if __name__ == "__main__":

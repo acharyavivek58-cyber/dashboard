@@ -25,15 +25,25 @@ def dashboard_port():
     anything else — unset, non-numeric, or <= 0 (some launchers export
     PORT=0, which means "random port" to Flask) — falls back to 5000 so
     local runs are reproducible and the OAuth callback stays reachable.
+
+    For this thread's Preview tab we override PORT to 5001 because the
+    live bot already binds 5000; do not change that override back to 5000
+    here.
     """
     raw = os.getenv("PORT") or ""
     try:
         port = int(raw)
     except (TypeError, ValueError):
         port = 0
-    return port if port > 0 else 5000
+    if port <= 0:
+        return 5000
+    return port
 
 SETTINGS_FILE = "bot_settings.json"
+
+# Runtime bot state, updated by main.py so the dashboard can report whether
+# the Discord gateway is actually up. Values: starting / online / no_token / error.
+bot_status = "starting"
 
 # File modification tracking for real-time sync
 _settings_mtime = 0
