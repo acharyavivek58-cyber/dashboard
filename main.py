@@ -195,13 +195,15 @@ def start_dashboard():
 def dashboard_only() -> bool:
     """Should this instance run the dashboard without the Discord bot?
 
-    The dashboard needs only the bot *token* for REST calls (guild list, roles),
-    never a gateway session, so a botless instance serves every page fine.
-    The Discord bot must run in exactly one place or every command fires twice,
-    so it is ON by default everywhere — Render's public instance is the live
-    bot host. Set DASHBOARD_ONLY=1 only to run a botless dashboard (e.g. a
-    local preview next to the live bot).
+    The Discord bot must run in exactly one place or every command fires
+    twice, and Render's public instance is the live bot host — so on Render
+    the bot is ALWAYS started, ignoring any stale DASHBOARD_ONLY flag left
+    in the service env from the earlier dashboard-only era. Only a non-Render
+    host may opt out with DASHBOARD_ONLY=1 (e.g. a local preview next to the
+    live bot).
     """
+    if any(os.environ.get(k) for k in ("RENDER", "IS_RENDER", "RENDER_INSTANCE_ID", "RENDER_SERVICE_ID")):
+        return False
     return os.environ.get("DASHBOARD_ONLY") == "1"
 
 
