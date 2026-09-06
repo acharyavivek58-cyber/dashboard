@@ -1,21 +1,40 @@
+import datetime
 import discord
 import config
 
+# Branding used in every embed's footer — filled in by main.py at startup.
+_BOT_NAME = "Aravix"
+_BOT_AVATAR = None
+
+
+def set_branding(name: str, avatar_url: str):
+    """Set the bot name/avatar shown in embed footers (called on_ready)."""
+    global _BOT_NAME, _BOT_AVATAR
+    _BOT_NAME = name
+    _BOT_AVATAR = avatar_url
+
+
+def _finish(e: discord.Embed) -> discord.Embed:
+    """Stamp every embed with the bot footer + timestamp for a polished look."""
+    e.set_footer(text=_BOT_NAME, icon_url=_BOT_AVATAR)
+    e.timestamp = datetime.datetime.now(datetime.timezone.utc)
+    return e
+
 
 def success(title: str, description: str = "") -> discord.Embed:
-    return discord.Embed(title=title, description=description, color=config.COLOR_SUCCESS)
+    return _finish(discord.Embed(title=title, description=description, color=config.COLOR_SUCCESS))
 
 
 def error(title: str, description: str = "") -> discord.Embed:
-    return discord.Embed(title=title, description=description, color=config.COLOR_ERROR)
+    return _finish(discord.Embed(title=title, description=description, color=config.COLOR_ERROR))
 
 
 def info(title: str, description: str = "") -> discord.Embed:
-    return discord.Embed(title=title, description=description, color=config.COLOR_INFO)
+    return _finish(discord.Embed(title=title, description=description, color=config.COLOR_INFO))
 
 
 def warning(title: str, description: str = "") -> discord.Embed:
-    return discord.Embed(title=title, description=description, color=config.COLOR_WARNING)
+    return _finish(discord.Embed(title=title, description=description, color=config.COLOR_WARNING))
 
 
 def member_embed(member: discord.Member) -> discord.Embed:

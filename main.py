@@ -84,6 +84,8 @@ async def on_ready():
     print(f"  Prefix: {config.BOT_PREFIX} (dynamic)")
     print("─" * 40)
 
+    utils.set_branding(bot.user.name, bot.user.display_avatar.url)
+
     try:
         app_id = str(bot.user.id)
         old_names = {"ban", "kick", "mute", "unmute", "warn", "warnings", "purge"}
@@ -195,17 +197,12 @@ def dashboard_only() -> bool:
 
     The dashboard needs only the bot *token* for REST calls (guild list, roles),
     never a gateway session, so a botless instance serves every page fine.
-    The Discord bot must run in exactly one place or every command fires in
-    every instance (double replies), so Render's public instance — which Render
-    injects RENDER / IS_RENDER / RENDER_INSTANCE_ID / RENDER_SERVICE_ID for —
-    defaults to dashboard-only unless RUN_BOT_ON_RENDER=1 forces the bot.
-    The manual DASHBOARD_ONLY=1 flag keeps working for non-Render hosts.
+    The Discord bot must run in exactly one place or every command fires twice,
+    so it is ON by default everywhere — Render's public instance is the live
+    bot host. Set DASHBOARD_ONLY=1 only to run a botless dashboard (e.g. a
+    local preview next to the live bot).
     """
-    if os.environ.get("DASHBOARD_ONLY") == "1":
-        return True
-    if os.environ.get("RUN_BOT_ON_RENDER") == "1":
-        return False
-    return any(os.environ.get(k) for k in ("RENDER", "IS_RENDER", "RENDER_INSTANCE_ID", "RENDER_SERVICE_ID"))
+    return os.environ.get("DASHBOARD_ONLY") == "1"
 
 
 async def main():

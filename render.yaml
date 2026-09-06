@@ -1,3 +1,4 @@
 env: python
-buildCommand: pip install -r requirements.txt
+# ffmpeg is a runtime binary the music cog shells out to — pip cannot install it.
+buildCommand: apt-get update && apt-get install -y ffmpeg && pip install -r requirements.txt
 startCommand: python main.py
