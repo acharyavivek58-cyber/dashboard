@@ -26,6 +26,15 @@ FFMPEG_OPTS = {
     "options": "-vn",
 }
 
+# Resolve a real ffmpeg binary: imageio-ffmpeg ships a static build inside its
+# wheel (no apt/PATH setup needed on Render), falling back to bare "ffmpeg" on
+# PATH for local dev.
+try:
+    import imageio_ffmpeg
+    FFMPEG_EXECUTABLE = imageio_ffmpeg.get_ffmpeg_exe()
+except Exception:
+    FFMPEG_EXECUTABLE = "ffmpeg"
+
 
 class Song:
     """Represents a single song in the queue."""
@@ -163,7 +172,7 @@ class Music(commands.Cog):
             asyncio.run_coroutine_threadsafe(coro, self.bot.loop)
 
         try:
-            source = discord.FFmpegPCMAudio(song.url, **FFMPEG_OPTS)
+            source = discord.FFmpegPCMAudio(song.url, executable=FFMPEG_EXECUTABLE, **FFMPEG_OPTS)
             source = discord.PCMVolumeTransformer(source, volume=player.volume)
             player.vc.play(source, after=_after_playing)
         except Exception as e:

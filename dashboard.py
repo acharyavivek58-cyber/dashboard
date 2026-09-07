@@ -124,7 +124,23 @@ def index():
 @app.route("/api/bot-status")
 def bot_status():
     """Live bot gateway state (see config.bot_status) — public, no secrets."""
-    return {"status": config.bot_status, "token_set": bool(config.BOT_TOKEN)}
+    import shutil
+    try:
+        import imageio_ffmpeg
+        ffmpeg_path = imageio_ffmpeg.get_ffmpeg_exe()
+    except Exception:
+        ffmpeg_path = shutil.which("ffmpeg")
+    try:
+        import yt_dlp  # noqa: F401
+        ytdlp_ok = True
+    except Exception:
+        ytdlp_ok = False
+    return {
+        "status": config.bot_status,
+        "token_set": bool(config.BOT_TOKEN),
+        "ffmpeg": bool(ffmpeg_path),
+        "yt_dlp": ytdlp_ok,
+    }
 
 
 @app.route("/login")
