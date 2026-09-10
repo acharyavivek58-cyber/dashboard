@@ -561,6 +561,281 @@ body.hero-loaded .geo-float {
 }
 .server-card:hover::after { opacity: 1; }
 
+/* ── HUD server-card variant ────────────────────────────────────── */
+/* A holographic server diagnostic panel. Powers up on hover/focus
+   so the card list stays calm until you engage a specific server. */
+.server-card.hud {
+  overflow: visible;
+  padding-bottom: 1.1rem;
+}
+.server-card.hud::before {
+  /* debug-border framing — only the focused card lights up */
+  content: '';
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 1px solid rgba(141,150,255,.06);
+  box-shadow:
+    0 0 0 1px rgba(141,150,255,.04),
+    inset 0 0 0 1px rgba(141,150,255,.04);
+  opacity: 0;
+  transition: opacity .3s ease, box-shadow .3s ease;
+  pointer-events: none;
+  z-index: 3;
+}
+.server-card.hud:hover::before,
+.server-card.hud:focus-within::before {
+  opacity: 1;
+  border-color: rgba(141,150,255,.35);
+  box-shadow:
+    0 0 0 1px rgba(141,150,255,.2),
+    inset 0 0 0 1px rgba(141,150,255,.2),
+    0 0 22px rgba(141,150,255,.18),
+    0 0 48px rgba(111,211,232,.08);
+}
+
+/* hud-corners already defined globally — scope the glow to HUD cards */
+.server-card.hud .hud-corners {
+  opacity: 0;
+  transition: opacity .3s ease;
+}
+.server-card.hud:hover .hud-corners,
+.server-card.hud:focus-within .hud-corners {
+  opacity: 1;
+}
+.server-card.hud .hud-corners::before,
+.server-card.hud .hud-corners::after {
+  border-color: rgba(141,150,255,.55);
+  box-shadow: 0 0 8px rgba(141,150,255,.4);
+}
+
+/* HUD data readout — appears under the card title on hover */
+.server-card.hud .hud-readout {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: -1px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: .4rem .8rem;
+  padding: .55rem .9rem .6rem;
+  margin: 0;
+  background: linear-gradient(180deg, rgba(8,11,18,.78), rgba(4,6,10,.9));
+  border-top: 1px solid rgba(141,150,255,.18);
+  border-bottom: 1px solid rgba(141,150,255,.18);
+  backdrop-filter: blur(18px) saturate(1.3);
+  -webkit-backdrop-filter: blur(18px) saturate(1.3);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.05),
+    0 6px 18px -10px rgba(0,0,0,.7);
+  opacity: 0;
+  transform: translateY(6px) scale(.98);
+  transition: opacity .3s ease, transform .3s cubic-bezier(.2,.6,.2,1);
+  pointer-events: none;
+  z-index: 4;
+  font-family: var(--font-mono);
+}
+.server-card.hud:hover .hud-readout,
+.server-card.hud:focus-within .hud-readout {
+  opacity: 1;
+  transform: none;
+}
+
+.hud-row {
+  display: flex;
+  align-items: center;
+  gap: .55rem;
+  font-size: .58rem;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--ink-2);
+}
+hud-row .sys-key {
+  color: var(--ink-3);
+  font-weight: 500;
+}
+hud-row .sys-val {
+  color: var(--ink);
+  font-weight: 600;
+  text-shadow: 0 0 6px rgba(141,150,255,.25);
+}
+
+/* status LED — small pulse dot with state color */
+.sys-led {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  box-shadow: 0 0 6px currentColor;
+  transition: background .25s, box-shadow .25s, transform .25s;
+}
+.sys-led.online { background: var(--teal); color: var(--teal); animation: ledPulse 2.4s ease-in-out infinite; }
+.sys-led.warn { background: var(--amber); color: var(--amber); }
+.sys-led.off { background: rgba(255,255,255,.12); color: rgba(255,255,255,.12); }
+.sys-led.error { background: var(--error); color: var(--error); }
+
+@keyframes ledPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: .7; transform: scale(.85); }
+}
+
+/* hex scanline strip under the readout for that HUD feel */
+.server-card.hud .hud-scan {
+  position: absolute;
+  left: 0; right: 0;
+  bottom: -1px;
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(111,211,232,.25) 20%,
+    rgba(141,150,255,.5) 50%,
+    rgba(111,211,232,.25) 80%,
+    transparent
+  );
+  box-shadow: 0 0 8px rgba(111,211,232,.2);
+  opacity: 0;
+  transition: opacity .35s ease;
+  pointer-events: none;
+  z-index: 5;
+}
+.server-card.hud:hover .hud-scan,
+.server-card.hud:focus-within .hud-scan {
+  opacity: 1;
+}
+
+/* config overlay panel — shown inside a guild page, not the card list */
+.sys-panel {
+  position: relative;
+  background: linear-gradient(180deg, rgba(8,11,18,.92), rgba(4,6,10,.96));
+  border: 1px solid rgba(141,150,255,.18);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow:
+    inset 0 0 0 1px rgba(141,150,255,.04),
+    0 2px 4px rgba(0,0,0,.5),
+    0 0 0 1px rgba(141,150,255,.05);
+}
+.sys-panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 10%; right: 10%;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent 10%,
+    rgba(111,211,232,.5) 40%,
+    rgba(141,150,255,.55) 50%,
+    rgba(111,211,232,.5) 60%,
+    transparent 90%);
+  opacity: .9;
+}
+sys-panel .sys-panel-head {
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+  padding: .85rem 1.2rem;
+  border-bottom: 1px solid rgba(141,150,255,.1);
+  background: rgba(255,255,255,.015);
+}
+sys-panel .sys-panel-head .sys-eyebrow {
+  font-family: var(--font-mono);
+  font-size: .58rem;
+  letter-spacing: .24em;
+  text-transform: uppercase;
+  color: var(--ice);
+  padding: .2rem .65rem;
+  border: 1px solid rgba(111,211,232,.2);
+  border-radius: 30px;
+  background: rgba(111,211,232,.05);
+}
+sys-panel .sys-panel-head h3 {
+  font-family: var(--font-disp);
+  font-size: .95rem;
+  font-weight: 600;
+  letter-spacing: -.01em;
+  color: var(--ink);
+  margin: 0;
+}
+sys-panel .sys-panel-body {
+  padding: 1.1rem 1.2rem 1.25rem;
+}
+
+.sys-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: .7rem;
+}
+sys-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+  padding: .6rem .85rem;
+  background: rgba(255,255,255,.015);
+  border: 1px solid rgba(141,150,255,.1);
+  border-radius: 8px;
+  font-size: .72rem;
+  color: var(--ink-2);
+  transition: border-color .2s, background .2s;
+}
+sys-row:hover {
+  border-color: rgba(141,150,255,.3);
+  background: rgba(141,150,255,.04);
+}
+sys-row .sys-key {
+  font-family: var(--font-mono);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+sys-row .sys-val {
+  font-weight: 600;
+  color: var(--ink);
+  text-align: right;
+  max-width: 55%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* enumeration badges — small hex-ish chips for counts */
+.sys-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 22px;
+  padding: .1rem .45rem;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: .62rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  color: var(--ink);
+  background: rgba(141,150,255,.12);
+  border: 1px solid rgba(141,150,255,.2);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+}
+
+/* scanline bed behind panel rows */
+.sys-panel-body::after {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg,
+    transparent,
+    rgba(111,211,232,.12) 40%,
+    rgba(141,150,255,.2) 50%,
+    rgba(111,211,232,.12) 60%,
+    transparent);
+  pointer-events: none;
+}
+
+/* ── Grid pattern upgrade — deeper perspective ─────────────────── */
+.grid-fade {
+  opacity: 0.6;
+  background-size: 64px 64px;
+}
+
 /* ── Grid pattern upgrade — deeper perspective ─────────────────── */
 .grid-fade {
   opacity: 0.6;

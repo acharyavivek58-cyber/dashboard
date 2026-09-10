@@ -14,8 +14,9 @@
 {% if guilds %}
 <div class="deck-grid">
     {% for guild in guilds %}
-    <a href="/dashboard/{{ guild.id }}" class="server-card tilt rv" style="--d:{{ loop.index0 * 0.05 }}s">
+    <a href="/dashboard/{{ guild.id }}" class="server-card tilt rv hud" style="--d:{{ loop.index0 * 0.05 }}s">
         <span class="tilt-glare"></span>
+        <span class="hud-corners" aria-hidden="true"></span>
         <span class="s-icon">
             {% if guild.icon %}
                 <img src="https://cdn.discordapp.com/icons/{{ guild.id }}/{{ guild.icon }}.png?size=128" alt="">
@@ -34,6 +35,13 @@
         <span class="s-go">
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
         </span>
+        <span class="hud-readout" aria-hidden="true">
+            <span class="hud-row"><span class="sys-led online"></span><span class="sys-key">SYS</span><span class="sys-val">ONLINE</span></span>
+            <span class="hud-row"><span class="sys-led online"></span><span class="sys-key">MOD</span><span class="sys-val">ACTIVE</span></span>
+            <span class="hud-row"><span class="sys-key">MEM</span><span class="sys-val">{{ guild.member_count|default('—') }}</span><span class="sys-key">CH</span><span class="sys-val">{{ guild.channel_count|default('—') }}</span></span>
+            <span class="hud-row"><span class="sys-key">VER</span><span class="sys-val">v2.4.1</span></span>
+        </span>
+        <span class="hud-scan" aria-hidden="true"></span>
     </a>
     {% endfor %}
 </div>
