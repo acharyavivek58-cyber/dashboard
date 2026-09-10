@@ -10,6 +10,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='cinematic.css') }}">
     <link rel="icon" href="{{ url_for('static', filename='favicon.svg') }}" type="image/svg+xml">
     {% block head %}{% endblock %}
 </head>
@@ -23,6 +24,14 @@
         <div class="grain"></div>
         <div class="vignette"></div>
     </div>
+
+    <!-- Cinematic layers -->
+    <div class="light-orb orb-1" aria-hidden="true"></div>
+    <div class="light-orb orb-2" aria-hidden="true"></div>
+    <div class="light-orb orb-3" aria-hidden="true"></div>
+    <div class="vignette-cinematic" aria-hidden="true"></div>
+    <div class="grain-enhanced" aria-hidden="true"></div>
+    <canvas id="particle-canvas" aria-hidden="true"></canvas>
 
     {% if user %}
     <div class="app-layout">
@@ -129,7 +138,9 @@
                     <div class="band-edge opp"></div>
                     {% block page_band %}{% endblock %}
                 </div>
+                <div class="reveal-in">
                 {% block content %}{% endblock %}
+                </div>
             </div>
         </main>
     </div>
@@ -138,5 +149,7 @@
     {% endif %}
     <script src="{{ url_for('static', filename='app.js') }}" defer></script>
     <script src="{{ url_for('static', filename='spatial.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='particles.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='cursor.js') }}" defer></script>
 </body>
 </html>
